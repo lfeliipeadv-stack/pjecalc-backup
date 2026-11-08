@@ -108,6 +108,12 @@ Durante uma operação, o ícone na **barra de tarefas** mostra o progresso.
 
 Dê dois cliques em **`backup-calculos.bat`** (vem no pacote `.zip`). Ele abre o `PJeCalcBackup-Console.exe`, com menus navegados pelas setas, Enter, Espaço (para marcar) e Esc. Tem as mesmas funções: backup escolhendo versões, cálculos e pasta; restauração com aviso de duplicados; migração; restauração do banco; histórico; busca nos backups; planilha; limpeza; configurações (inclusive backup automático e atualização).
 
+<p align="center"><img src="docs/demonstracao-cmd.gif" alt="Versão para o CMD: menu principal, escolha das versões, configurações e QR Code do PIX desenhado no terminal" width="620"></p>
+
+| Menu principal | Escolha das versões | Apoie, com QR Code no terminal |
+|---|---|---|
+| ![Menu do CMD](docs/cmd-menu.png) | ![Versões no CMD](docs/cmd-versoes.png) | ![Apoie no CMD](docs/cmd-apoie.png) |
+
 **Arrastar e soltar:** arraste arquivos `.PJC` (ou uma pasta de backup) sobre o `backup-calculos.bat` para restaurá-los. Arraste o `.zip` de um backup do banco para restaurar o banco.
 
 **Modo automático**, sem perguntas:
