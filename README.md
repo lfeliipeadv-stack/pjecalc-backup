@@ -2,7 +2,7 @@
 
 Programa para Windows que faz **backup, restauração e migração dos cálculos do PJe-Calc Cidadão**, em todas as versões instaladas no computador, com uma tela moderna em etapas.
 
-<p align="center"><img src="docs/demonstracao.gif" alt="Demonstração: escolha das versões, cálculos agrupados por versão, troca de cores e tema escuro" width="720"></p>
+<p align="center"><img src="docs/demonstracao.gif" alt="Demonstração: backup, restauração, migração entre versões, histórico, troca de cores, tema escuro e apoio" width="720"></p>
 
 - **Backup:** exporta os cálculos em `.PJC` (todos ou só os escolhidos) e copia o banco de dados completo de cada versão, com **conferência** ("12 de 12 conferidos").
 - **Backup rápido:** só os cálculos novos ou alterados são exportados; os que não mudaram são copiados do backup anterior (o segundo backup leva segundos em vez de minutos).
@@ -51,11 +51,13 @@ O PJe-Calc guarda os cálculos num banco de dados **dentro da pasta de cada vers
 
 Cada operação é feita **em etapas**, com **Voltar**, **Avançar** e **Concluir** (ou pelo teclado: **Enter** avança, **Esc** volta, **Ctrl+F** vai para o filtro). Antes de começar, um aviso pede para você **salvar e fechar o que estiver editando** no PJe-Calc.
 
-| Escolha das versões | Cálculos agrupados por versão |
+| Backup: escolha das versões | Backup: cálculos agrupados por versão |
 |---|---|
 | ![Versões](docs/tela-versoes.png) | ![Cálculos](docs/tela-calculos.png) |
-| **33 cores, tema claro ou escuro** | **Configurações com interruptores** |
-| ![Cores](docs/tela-cores.png) | ![Configurações](docs/tela-configuracoes.png) |
+| **Restaurar** | **Migrar entre versões** |
+| ![Restaurar](docs/tela-restaurar.png) | ![Migrar](docs/tela-migrar.png) |
+| **Histórico, com busca nos backups** | **33 cores, tema claro ou escuro** |
+| ![Histórico](docs/tela-historico.png) | ![Cores](docs/tela-cores.png) |
 
 ### Backup
 1. **Versões:** o programa encontra sozinho as versões instaladas e mostra o estado (*Fechada* / *Aberta agora*) e o número de cálculos de cada uma.
