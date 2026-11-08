@@ -22,6 +22,16 @@ namespace PjeCalcBackup
         public bool ExportarPjc { get; set; }
         public bool CopiarBanco { get; set; }
         public string UltimaPastaPjc { get; set; }
+        public string Tema { get; set; }               // Sistema | Claro | Escuro
+        public int Paleta { get; set; }
+        public bool Sons { get; set; }
+        public bool Notificacoes { get; set; }
+        public bool Lembrete { get; set; }
+        public int LembreteDias { get; set; }
+        public bool VerificarAtualizacoes { get; set; }
+        public bool AbrirPastaAoTerminar { get; set; }
+        public bool ReabrirPjeCalc { get; set; }
+        public int VersaoConfig { get; set; }
 
         private static string Arquivo
         {
@@ -38,15 +48,25 @@ namespace PjeCalcBackup
                     if (c.PastasExtras == null) c.PastasExtras = new List<string>();
                     if (c.Desmarcadas == null) c.Desmarcadas = new List<string>();
                     if (string.IsNullOrEmpty(c.Destino)) c.Destino = DestinoPadrao();
+                    if (c.VersaoConfig < 2) c.AplicarPadroesNovos();
                     return c;
                 }
             }
             catch { }
-            return new Config
+            var n = new Config
             {
                 Destino = DestinoPadrao(),
                 PastasExtras = new List<string>(), Desmarcadas = new List<string>(), ExportarPjc = true, CopiarBanco = true
             };
+            n.AplicarPadroesNovos();
+            return n;
+        }
+
+        /// <summary>Valores padrão das opções que surgiram na versão 1.2.</summary>
+        private void AplicarPadroesNovos()
+        {
+            Tema = "Sistema"; Paleta = 0; Sons = true; Notificacoes = true; Lembrete = true; LembreteDias = 7;
+            VerificarAtualizacoes = true; AbrirPastaAoTerminar = false; ReabrirPjeCalc = true; VersaoConfig = 2;
         }
 
         private static string DestinoPadrao()
@@ -147,14 +167,13 @@ namespace PjeCalcBackup
         /// <summary>Mostra a mensagem. Devolve true se o botão principal foi clicado.</summary>
         public static bool Mostrar(Window dono, TipoDialogo tipo, string titulo, string mensagem, string botaoPrincipal, string botaoSecundario)
         {
-            string cor, simbolo;
+            string chave, simbolo;
             switch (tipo)
             {
-                case TipoDialogo.Aviso: cor = "#C27C0E"; simbolo = "!"; break;
-                case TipoDialogo.Sucesso: cor = "#1E7A3D"; simbolo = "✓"; break;
-                case TipoDialogo.Erro: cor = "#B42318"; simbolo = "✗"; break;
-                case TipoDialogo.Pergunta: cor = "#2F5D8F"; simbolo = "?"; break;
-                default: cor = "#2F5D8F"; simbolo = "i"; break;
+                case TipoDialogo.Aviso: chave = "Aviso"; simbolo = "!"; break;
+                case TipoDialogo.Sucesso: chave = "Ok"; simbolo = "✓"; break;
+                case TipoDialogo.Erro: chave = "Erro"; simbolo = "✗"; break;
+                default: chave = "Primaria"; simbolo = tipo == TipoDialogo.Pergunta ? "?" : "i"; break;
             }
 
             var w = new Window
@@ -165,17 +184,20 @@ namespace PjeCalcBackup
                 ResizeMode = ResizeMode.NoResize,
                 WindowStartupLocation = dono != null ? WindowStartupLocation.CenterOwner : WindowStartupLocation.CenterScreen,
                 ShowInTaskbar = false,
-                Background = Brushes.White,
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 13,
                 UseLayoutRounding = true
             };
+            w.SetResourceReference(Control.BackgroundProperty, "Superficie");
+            w.SetResourceReference(Control.ForegroundProperty, "Texto");
             if (dono != null && dono.IsVisible) { w.Owner = dono; w.Icon = dono.Icon; }
+            w.SourceInitialized += (s, e) => Tema.BarraDeTitulo(w, Application.Current != null && Equals(Application.Current.TryFindResource("Escuro"), true));
 
             var raiz = new DockPanel();
 
             // rodapé com os botões
-            var rodape = new Border { Background = (Brush)new BrushConverter().ConvertFromString("#F3F5F8"), Padding = new Thickness(20, 12, 20, 12) };
+            var rodape = new Border { Padding = new Thickness(20, 12, 20, 12) };
+            rodape.SetResourceReference(Border.BackgroundProperty, "Fundo");
             DockPanel.SetDock(rodape, Dock.Bottom);
             var botoes = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
             bool resultado = false;
@@ -200,23 +222,27 @@ namespace PjeCalcBackup
             // corpo: ícone + título + mensagem
             var corpo = new DockPanel { Margin = new Thickness(22, 20, 22, 18) };
             var circulo = new Grid { Width = 40, Height = 40, VerticalAlignment = VerticalAlignment.Top, Margin = new Thickness(0, 0, 16, 0) };
-            circulo.Children.Add(new Ellipse { Fill = (Brush)new BrushConverter().ConvertFromString(cor) });
-            circulo.Children.Add(new TextBlock
+            var el = new Ellipse();
+            el.SetResourceReference(Shape.FillProperty, chave);
+            circulo.Children.Add(el);
+            var sim = new TextBlock
             {
-                Text = simbolo, Foreground = Brushes.White, FontSize = 20, FontWeight = FontWeights.Bold,
+                Text = simbolo, FontSize = 20, FontWeight = FontWeights.Bold,
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 FontFamily = new FontFamily("Segoe UI Symbol")
-            });
+            };
+            sim.SetResourceReference(TextBlock.ForegroundProperty, "Superficie");
+            circulo.Children.Add(sim);
             DockPanel.SetDock(circulo, Dock.Left);
             corpo.Children.Add(circulo);
 
             var textos = new StackPanel();
-            textos.Children.Add(new TextBlock { Text = titulo, FontSize = 17, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap });
-            textos.Children.Add(new TextBlock
-            {
-                Text = mensagem, TextWrapping = TextWrapping.Wrap, LineHeight = 20,
-                Foreground = (Brush)new BrushConverter().ConvertFromString("#3E4A56")
-            });
+            var t1 = new TextBlock { Text = titulo, FontSize = 17, FontWeight = FontWeights.SemiBold, Margin = new Thickness(0, 0, 0, 8), TextWrapping = TextWrapping.Wrap };
+            t1.SetResourceReference(TextBlock.ForegroundProperty, "Texto");
+            textos.Children.Add(t1);
+            var t2 = new TextBlock { Text = mensagem, TextWrapping = TextWrapping.Wrap, LineHeight = 20 };
+            t2.SetResourceReference(TextBlock.ForegroundProperty, "TextoSuave");
+            textos.Children.Add(t2);
             corpo.Children.Add(textos);
             raiz.Children.Add(corpo);
 

@@ -1,5 +1,5 @@
-# Compila o PJe-Calc Backup a partir do código-fonte e publica o .exe em Releases.
-# Dispara quando uma tag "v*" (ex.: v1.0.0) é enviada, ou manualmente.
+# Compila o PJe-Calc Backup a partir do código-fonte e publica em Releases.
+# Dispara quando uma tag "v*" (ex.: v1.2.0) é enviada, ou manualmente.
 name: Compilar e publicar
 
 on:
@@ -20,19 +20,25 @@ jobs:
         shell: powershell
         run: powershell -NoProfile -ExecutionPolicy Bypass -File app\compilar.ps1
 
-      - name: Calcular SHA-256
-        shell: powershell
+      - name: Pacote e SHA-256
+        shell: pwsh
         run: |
-          $h = (Get-FileHash app\saida\PJeCalcBackup.exe -Algorithm SHA256).Hash
-          "PJeCalcBackup.exe  SHA-256: $h" | Out-File app\saida\SHA256.txt -Encoding ascii
-          Get-Content app\saida\SHA256.txt
+          $s = 'app/saida'
+          Copy-Item backup-calculos/backup-calculos.bat, backup-calculos/LEIA-ME.txt $s -Force
+          $nome = if ($env:GITHUB_REF_NAME -like 'v*') { "PJeCalcBackup-$env:GITHUB_REF_NAME.zip" } else { 'PJeCalcBackup.zip' }
+          Compress-Archive -Path "$s/PJeCalcBackup.exe", "$s/PJeCalcBackup-Console.exe", "$s/backup-calculos.bat", "$s/LEIA-ME.txt" -DestinationPath "$s/$nome" -Force
+          $linhas = foreach ($f in 'PJeCalcBackup.exe', 'PJeCalcBackup-Console.exe', $nome) { "$f  SHA-256: $((Get-FileHash "$s/$f" -Algorithm SHA256).Hash)" }
+          [IO.File]::WriteAllLines("$PWD/$s/SHA256.txt", $linhas)
+          Get-Content "$s/SHA256.txt"
+          "PACOTE=$nome" | Out-File $env:GITHUB_ENV -Append
 
       - name: Guardar artefato
         uses: actions/upload-artifact@v4
         with:
           name: PJeCalcBackup
           path: |
-            app/saida/PJeCalcBackup.exe
+            app/saida/*.exe
+            app/saida/*.zip
             app/saida/SHA256.txt
 
       - name: Publicar release
@@ -41,15 +47,17 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          $sha = Get-Content app\saida\SHA256.txt
+          $sha = Get-Content app/saida/SHA256.txt
           $notas = @(
-            'Baixe **PJeCalcBackup.exe** abaixo e dê dois cliques. Não precisa instalar.',
+            '**Para usar:** baixe **PJeCalcBackup.exe** e dê dois cliques. Não precisa instalar.',
+            '',
+            '**Versão para o CMD:** baixe o pacote **' + $env:PACOTE + '** (traz o PJeCalcBackup-Console.exe e o backup-calculos.bat).',
             '',
             'Na primeira vez o Windows pode mostrar *O Windows protegeu o computador* (o programa não tem assinatura digital paga): clique em **Mais informações → Executar assim mesmo**.',
             '',
             'Compilado automaticamente pelo GitHub a partir do código deste repositório.',
             '',
-            ('`' + $sha + '`')
-          )
-          [IO.File]::WriteAllLines("$PWD\notas.md", $notas, (New-Object Text.UTF8Encoding $false))
-          gh release create $env:GITHUB_REF_NAME app/saida/PJeCalcBackup.exe app/saida/SHA256.txt --title "PJe-Calc Backup $env:GITHUB_REF_NAME" --notes-file notas.md
+            '```'
+          ) + $sha + @('```')
+          [IO.File]::WriteAllLines("$PWD/notas.md", $notas, (New-Object Text.UTF8Encoding $false))
+          gh release create $env:GITHUB_REF_NAME app/saida/PJeCalcBackup.exe app/saida/PJeCalcBackup-Console.exe "app/saida/$env:PACOTE" app/saida/SHA256.txt --title "PJe-Calc Backup $env:GITHUB_REF_NAME" --notes-file notas.md

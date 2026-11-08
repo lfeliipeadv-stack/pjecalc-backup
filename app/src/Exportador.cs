@@ -173,11 +173,17 @@ namespace PjeCalcBackup
             var m = Regex.Match(Convert.ToString(r["disp"]), "filename=\"?([^\";]+)");
             string nomeOriginal = m.Success ? m.Groups[1].Value : "CALCULO_" + calc.Numero + ".PJC";
             string rec = new string((calc.Reclamante ?? "").Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray()).Trim();
-            if (rec.Length > 80) rec = rec.Substring(0, 80).Trim();
+            if (rec.Length > 40) rec = rec.Substring(0, 40).Trim();
             string nome = rec.Length > 0 ? Regex.Replace(nomeOriginal, "^(CALCULO_\\d+)_", "$1_" + rec.Replace("$", "") + "_") : nomeOriginal;
             nome = new string(nome.Where(ch => !Path.GetInvalidFileNameChars().Contains(ch)).ToArray());
 
+            // o Windows limita o caminho completo a 260 caracteres: encurta o nome se preciso
             Directory.CreateDirectory(pasta);
+            string pastaCompleta = Path.GetFullPath(pasta);
+            if (pastaCompleta.Length + 1 + nome.Length > 245) nome = nomeOriginal;
+            if (pastaCompleta.Length + 1 + nome.Length > 245) nome = "CALCULO_" + calc.Numero + ".PJC";
+            if (pastaCompleta.Length + 1 + nome.Length > 255)
+                throw new Exception("o caminho da pasta de backups é longo demais para o Windows; escolha uma pasta mais curta (ex.: C:\\Backups)");
             string arquivo = Path.Combine(pasta, nome);
             File.WriteAllBytes(arquivo, bytes);
             using (var z = System.IO.Compression.ZipFile.OpenRead(arquivo))

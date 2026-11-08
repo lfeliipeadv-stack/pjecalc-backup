@@ -352,30 +352,24 @@ namespace PjeCalcBackup
 
         // ------------------------------------------------- contar cálculos (fechada)
 
-        /// <summary>Conta os cálculos lendo o banco em modo somente leitura. Só com a versão fechada.</summary>
+        /// <summary>Conta os cálculos ativos (lendo uma cópia do banco; funciona com a versão aberta).</summary>
         public int? ContarCalculos()
         {
-            try
-            {
-                if (!File.Exists(ArquivoBanco) || File.Exists(ArquivoTrava) || !File.Exists(JavaExe)) return null;
-                string h2 = Directory.GetFiles(Path.Combine(Pasta, @"bin\lib"), "h2-*.jar").FirstOrDefault();
-                if (h2 == null) return null;
-                string url = "jdbc:h2:" + Path.Combine(Pasta, @".dados\pjecalc") + ";ACCESS_MODE_DATA=r";
-                var psi = new ProcessStartInfo(JavaExe,
-                    "-cp \"" + h2 + "\" org.h2.tools.Shell -url \"" + url + "\" -user \"" + UsuarioBanco + "\" -password \"" + SenhaBanco +
-                    "\" -sql \"SELECT COUNT(*) FROM TBCALCULO\"");
-                psi.UseShellExecute = false; psi.RedirectStandardOutput = true; psi.RedirectStandardError = true; psi.CreateNoWindow = true;
-                using (var p = Process.Start(psi))
-                {
-                    var t = p.StandardOutput.ReadToEndAsync();
-                    p.StandardError.ReadToEndAsync();
-                    if (!p.WaitForExit(30000)) { try { p.Kill(); } catch { } return null; }
-                    var m = Regex.Match(t.Result, "^\\s*(\\d+)\\s*$", RegexOptions.Multiline);
-                    if (m.Success) return int.Parse(m.Groups[1].Value);
-                }
-            }
-            catch { }
-            return null;
+            try { return BancoPjeCalc.Listar(this).Count; }
+            catch { return null; }
+        }
+
+        // ----------------------------------------------------- substituir o banco
+
+        /// <summary>Troca o banco da instalação por outro arquivo (só com a versão fechada).</summary>
+        public void SubstituirBanco(string novoBanco)
+        {
+            if (File.Exists(ArquivoTrava) || EstaAberta())
+                throw new Exception("a versão está aberta; feche o PJe-Calc para restaurar o banco");
+            string novo = ArquivoBanco + ".novo";
+            File.Copy(novoBanco, novo, true);
+            if (File.Exists(ArquivoBanco)) File.Replace(novo, ArquivoBanco, null);
+            else File.Move(novo, ArquivoBanco);
         }
 
         // ----------------------------------------------------- copiar o banco
