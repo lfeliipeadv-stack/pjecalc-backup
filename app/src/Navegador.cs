@@ -174,7 +174,12 @@ namespace PjeCalcBackup
                 " --user-data-dir=\"" + perfil + "\" about:blank");
             psi.UseShellExecute = false;
             psi.CreateNoWindow = true;
+            // Sem redirecionar, o Edge/Chrome escreve na janela do CMD ("DevTools listening on ws://...").
+            // A saída é lida e descartada, para o buffer nunca encher.
+            psi.RedirectStandardOutput = true; psi.RedirectStandardError = true;
             processo = Process.Start(psi);
+            processo.OutputDataReceived += (s, e) => { }; processo.ErrorDataReceived += (s, e) => { };
+            processo.BeginOutputReadLine(); processo.BeginErrorReadLine();
 
             string wsUrl = null;
             var json = new JavaScriptSerializer();
@@ -237,7 +242,11 @@ namespace PjeCalcBackup
                 {
                     var k = new ProcessStartInfo("taskkill", "/PID " + processo.Id + " /T /F");
                     k.CreateNoWindow = true; k.UseShellExecute = false;
-                    var pk = Process.Start(k); pk.WaitForExit(5000);
+                    k.RedirectStandardOutput = true; k.RedirectStandardError = true;
+                    var pk = Process.Start(k);
+                    pk.OutputDataReceived += (s, e) => { }; pk.ErrorDataReceived += (s, e) => { };
+                    pk.BeginOutputReadLine(); pk.BeginErrorReadLine();
+                    pk.WaitForExit(5000);
                 }
             }
             catch { }

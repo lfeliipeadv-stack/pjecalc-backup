@@ -58,6 +58,11 @@ namespace PjeCalcBackup
         /// <summary>Procura instalações nos discos fixos (até 5 níveis de pasta).</summary>
         public static List<string> Procurar(IEnumerable<string> raizesExtras, Func<bool> cancelado)
         {
+            // Só para testes e fotos da documentação: PJECALC_BACKUP_SO_PASTAS="pasta1;pasta2" faz o programa
+            // enxergar apenas essas instalações, sem procurar no computador.
+            var so = Environment.GetEnvironmentVariable("PJECALC_BACKUP_SO_PASTAS");
+            if (!string.IsNullOrEmpty(so) && raizesExtras == null)
+                return so.Split(';').Select(p => p.Trim()).Where(p => p.Length > 0 && PareceInstalacao(p)).ToList();
             var achadas = new List<string>();
             var raizes = DriveInfo.GetDrives()
                 .Where(d => { try { return d.DriveType == DriveType.Fixed && d.IsReady; } catch { return false; } })
