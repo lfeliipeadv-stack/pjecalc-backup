@@ -24,7 +24,7 @@ Testado no PJe-Calc Cidadão **2.14.0** e **2.16.0**, no Windows 11.
 
 ## Download
 
-**[⬇ Baixar a versão mais recente](../../releases/latest)**
+**[⬇ Baixar a versão mais recente](../../releases/latest)**   ·   **[📖 Guia completo no Wiki](../../wiki)**
 
 | Arquivo | Para quê |
 |---|---|
