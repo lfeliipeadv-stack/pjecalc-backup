@@ -1,0 +1,55 @@
+# Compila o PJe-Calc Backup a partir do código-fonte e publica o .exe em Releases.
+# Dispara quando uma tag "v*" (ex.: v1.0.0) é enviada, ou manualmente.
+name: Compilar e publicar
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  compilar:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compilar
+        shell: powershell
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File app\compilar.ps1
+
+      - name: Calcular SHA-256
+        shell: powershell
+        run: |
+          $h = (Get-FileHash app\saida\PJeCalcBackup.exe -Algorithm SHA256).Hash
+          "PJeCalcBackup.exe  SHA-256: $h" | Out-File app\saida\SHA256.txt -Encoding ascii
+          Get-Content app\saida\SHA256.txt
+
+      - name: Guardar artefato
+        uses: actions/upload-artifact@v4
+        with:
+          name: PJeCalcBackup
+          path: |
+            app/saida/PJeCalcBackup.exe
+            app/saida/SHA256.txt
+
+      - name: Publicar release
+        if: startsWith(github.ref, 'refs/tags/v')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $sha = Get-Content app\saida\SHA256.txt
+          $notas = @(
+            'Baixe **PJeCalcBackup.exe** abaixo e dê dois cliques. Não precisa instalar.',
+            '',
+            'Na primeira vez o Windows pode mostrar *O Windows protegeu o computador* (o programa não tem assinatura digital paga): clique em **Mais informações → Executar assim mesmo**.',
+            '',
+            'Compilado automaticamente pelo GitHub a partir do código deste repositório.',
+            '',
+            ('`' + $sha + '`')
+          )
+          [IO.File]::WriteAllLines("$PWD\notas.md", $notas, (New-Object Text.UTF8Encoding $false))
+          gh release create $env:GITHUB_REF_NAME app/saida/PJeCalcBackup.exe app/saida/SHA256.txt --title "PJe-Calc Backup $env:GITHUB_REF_NAME" --notes-file notas.md

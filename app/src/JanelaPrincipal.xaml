@@ -1,0 +1,375 @@
+<Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="PJe-Calc Backup" Width="920" Height="840" MinWidth="780" MinHeight="600"
+        WindowStartupLocation="CenterScreen" Background="#F3F5F8"
+        FontFamily="Segoe UI" FontSize="13" Foreground="#1F2933"
+        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+
+  <Window.Resources>
+    <SolidColorBrush x:Key="Primaria" Color="#2F5D8F"/>
+    <SolidColorBrush x:Key="PrimariaEscura" Color="#23476F"/>
+    <SolidColorBrush x:Key="PrimariaClara" Color="#E9F0F8"/>
+    <SolidColorBrush x:Key="Borda" Color="#DDE3EA"/>
+    <SolidColorBrush x:Key="TextoSuave" Color="#5B6775"/>
+
+    <Style x:Key="Cartao" TargetType="Border">
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="BorderBrush" Value="{StaticResource Borda}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Padding" Value="18,12"/>
+      <Setter Property="Margin" Value="0,0,0,10"/>
+    </Style>
+
+    <Style x:Key="TituloCartao" TargetType="TextBlock">
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="#1F2933"/>
+    </Style>
+
+    <Style x:Key="BotaoBase" TargetType="Button">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Padding" Value="14,7"/>
+      <Setter Property="Background" Value="White"/>
+      <Setter Property="Foreground" Value="{StaticResource PrimariaEscura}"/>
+      <Setter Property="BorderBrush" Value="#C5CFDB"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="{TemplateBinding BorderThickness}" CornerRadius="6" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="b" Property="Background" Value="{StaticResource PrimariaClara}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="b" Property="Opacity" Value="0.5"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style x:Key="BotaoPrimario" TargetType="Button" BasedOn="{StaticResource BotaoBase}">
+      <Setter Property="Background" Value="{StaticResource Primaria}"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="BorderBrush" Value="{StaticResource PrimariaEscura}"/>
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="Padding" Value="28,11"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="Button">
+            <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}"
+                    BorderThickness="1" CornerRadius="8" Padding="{TemplateBinding Padding}">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="b" Property="Background" Value="{StaticResource PrimariaEscura}"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="b" Property="Opacity" Value="0.55"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- abas em formato de "pílula" -->
+    <Style x:Key="Aba" TargetType="RadioButton">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="{StaticResource TextoSuave}"/>
+      <Setter Property="Margin" Value="0,0,6,0"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="RadioButton">
+            <Border x:Name="b" CornerRadius="18" Padding="18,7" Background="Transparent">
+              <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"/>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="b" Property="Background" Value="#E3E9F1"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="b" Property="Background" Value="{StaticResource Primaria}"/>
+                <Setter Property="Foreground" Value="White"/>
+              </Trigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter TargetName="b" Property="Opacity" Value="0.5"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <Style TargetType="CheckBox">
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style TargetType="ProgressBar">
+      <Setter Property="Height" Value="8"/>
+      <Setter Property="Foreground" Value="{StaticResource Primaria}"/>
+      <Setter Property="Background" Value="#E6EBF1"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="ProgressBar">
+            <Border CornerRadius="4" Background="{TemplateBinding Background}" ClipToBounds="True">
+              <Grid>
+                <Rectangle x:Name="PART_Track"/>
+                <Border x:Name="PART_Indicator" HorizontalAlignment="Left" CornerRadius="4" Background="{TemplateBinding Foreground}"/>
+              </Grid>
+            </Border>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- registro de execução (compartilhado pelas duas abas) -->
+    <DataTemplate x:Key="ModeloLog">
+      <DockPanel Margin="{Binding Margem}">
+        <TextBlock DockPanel.Dock="Left" Width="20" Text="{Binding Icone}" Foreground="{Binding Cor}" FontWeight="Bold" FontFamily="Segoe UI Symbol"/>
+        <TextBlock Text="{Binding Texto}" Foreground="{Binding Cor}" FontWeight="{Binding Peso}" TextWrapping="Wrap"/>
+      </DockPanel>
+    </DataTemplate>
+  </Window.Resources>
+
+  <Grid>
+    <Grid.RowDefinitions>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="Auto"/>
+      <RowDefinition Height="*"/>
+      <RowDefinition Height="Auto"/>
+    </Grid.RowDefinitions>
+
+    <!-- Cabeçalho -->
+    <Border Grid.Row="0" Padding="24,15">
+      <Border.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+          <GradientStop Color="#23476F" Offset="0"/>
+          <GradientStop Color="#2F5D8F" Offset="1"/>
+        </LinearGradientBrush>
+      </Border.Background>
+      <DockPanel>
+        <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="11" Background="#33FFFFFF" Margin="0,0,16,0">
+          <Path Fill="White" Stretch="Uniform" Margin="11"
+                Data="M12,2 L20,5.5 L20,11 C20,16 16.6,20.4 12,22 C7.4,20.4 4,16 4,11 L4,5.5 Z M11,7 L11,12.6 L8.7,10.3 L7.3,11.7 L12,16.4 L16.7,11.7 L15.3,10.3 L13,12.6 L13,7 Z"/>
+        </Border>
+        <StackPanel VerticalAlignment="Center">
+          <TextBlock Text="PJe-Calc Backup" FontSize="22" FontWeight="SemiBold" Foreground="White"/>
+          <TextBlock Text="Backup e restauração dos cálculos de todas as versões do PJe-Calc Cidadão instaladas neste computador."
+                     Foreground="#D6E2F0" TextWrapping="Wrap" Margin="0,2,0,0"/>
+        </StackPanel>
+      </DockPanel>
+    </Border>
+
+    <!-- Abas -->
+    <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="22,12,22,0">
+      <RadioButton x:Name="abaBackup" GroupName="abas" Style="{StaticResource Aba}" Content="Fazer backup" IsChecked="True"/>
+      <RadioButton x:Name="abaRestaurar" GroupName="abas" Style="{StaticResource Aba}" Content="Restaurar cálculos (.PJC)"/>
+    </StackPanel>
+
+    <!-- ===================================================== ABA BACKUP -->
+    <Grid x:Name="painelBackup" Grid.Row="2" Margin="22,10,22,2">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*" MinHeight="180"/>
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource Cartao}">
+        <StackPanel>
+          <DockPanel Margin="0,0,0,8">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+              <Button x:Name="btnProcurar" Content="Procurar de novo" Style="{StaticResource BotaoBase}" Margin="0,0,8,0"/>
+              <Button x:Name="btnAdicionar" Content="Adicionar pasta…" Style="{StaticResource BotaoBase}"/>
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="1. Versões do PJe-Calc" Style="{StaticResource TituloCartao}"/>
+              <TextBlock Text="Marque as versões que entram no backup. Se alguma estiver aberta, ela é fechada com segurança e reaberta no final." Foreground="{StaticResource TextoSuave}" Margin="0,2,0,0" TextWrapping="Wrap"/>
+            </StackPanel>
+          </DockPanel>
+
+          <TextBlock x:Name="txtProcurando" Text="Procurando instalações do PJe-Calc no computador…" Foreground="{StaticResource TextoSuave}" Margin="2,6"/>
+
+          <ScrollViewer MaxHeight="150" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="lstVersoes" ItemsSource="{Binding Instalacoes}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border BorderBrush="#E6EBF1" BorderThickness="1" CornerRadius="8" Padding="12,6" Margin="0,0,0,6" Background="#FBFCFD">
+                    <DockPanel>
+                      <Border DockPanel.Dock="Right" CornerRadius="10" Padding="10,3" VerticalAlignment="Center" Background="{Binding CorEstadoFundo}">
+                        <TextBlock Text="{Binding TextoEstado}" Foreground="{Binding CorEstadoTexto}" FontSize="12" FontWeight="SemiBold"/>
+                      </Border>
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding TextoCalculos}" Foreground="{StaticResource TextoSuave}" VerticalAlignment="Center" Margin="0,0,14,0"/>
+                      <CheckBox IsChecked="{Binding Selecionada, Mode=TwoWay}" IsEnabled="{Binding Selecionavel}" VerticalAlignment="Center">
+                        <StackPanel Margin="6,0,0,0">
+                          <TextBlock FontSize="15" FontWeight="SemiBold" Text="{Binding Titulo}"/>
+                          <TextBlock Text="{Binding Pasta}" Foreground="{StaticResource TextoSuave}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                      </CheckBox>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Style="{StaticResource Cartao}">
+        <StackPanel>
+          <TextBlock Text="2. Onde salvar" Style="{StaticResource TituloCartao}"/>
+          <TextBlock Text="Cada backup cria uma pasta nova com a data e a hora; nada é apagado." Foreground="{StaticResource TextoSuave}" Margin="0,2,0,8"/>
+          <DockPanel>
+            <Button x:Name="btnAbrirPasta" DockPanel.Dock="Right" Content="Abrir" Style="{StaticResource BotaoBase}" Margin="8,0,0,0"/>
+            <Button x:Name="btnEscolher" DockPanel.Dock="Right" Content="Escolher…" Style="{StaticResource BotaoBase}" Margin="8,0,0,0"/>
+            <Border BorderBrush="#C5CFDB" BorderThickness="1" CornerRadius="6" Background="White">
+              <TextBox Text="{Binding Destino, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" BorderThickness="0" Padding="8,7" Background="Transparent" VerticalContentAlignment="Center"/>
+            </Border>
+          </DockPanel>
+          <WrapPanel Margin="0,10,0,0">
+            <CheckBox IsChecked="{Binding ExportarPjc, Mode=TwoWay}" Margin="0,0,24,4">
+              <TextBlock Margin="4,0,0,0"><Run FontWeight="SemiBold" Text="Exportar os cálculos em .PJC"/><Run Foreground="#5B6775" Text="  (para importar no PJe-Calc)"/></TextBlock>
+            </CheckBox>
+            <CheckBox IsChecked="{Binding CopiarBanco, Mode=TwoWay}" Margin="0,0,0,4">
+              <TextBlock Margin="4,0,0,0"><Run FontWeight="SemiBold" Text="Copiar o banco de dados"/><Run Foreground="#5B6775" Text="  (cópia completa da versão)"/></TextBlock>
+            </CheckBox>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="2" Style="{StaticResource Cartao}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <DockPanel Grid.Row="0">
+            <Button x:Name="btnBackup" DockPanel.Dock="Right" Content="Fazer backup" Style="{StaticResource BotaoPrimario}"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Text="3. Backup" Style="{StaticResource TituloCartao}"/>
+              <TextBlock x:Name="txtEtapa" Text="Pronto para começar." Foreground="{StaticResource TextoSuave}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            </StackPanel>
+          </DockPanel>
+          <ProgressBar Grid.Row="1" x:Name="barra" Margin="0,10,0,0" Maximum="1" Value="0"/>
+          <Border Grid.Row="2" Margin="0,10,0,0" MinHeight="90" BorderBrush="#E6EBF1" BorderThickness="1" CornerRadius="8" Background="#FBFCFD">
+            <ScrollViewer x:Name="rolagemLog" VerticalScrollBarVisibility="Auto" Padding="10,8">
+              <ItemsControl ItemsSource="{Binding Log}" ItemTemplate="{StaticResource ModeloLog}"/>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- ================================================== ABA RESTAURAR -->
+    <Grid x:Name="painelRestaurar" Grid.Row="2" Margin="22,10,22,2" Visibility="Collapsed">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*" MinHeight="180"/>
+      </Grid.RowDefinitions>
+
+      <Border Grid.Row="0" Style="{StaticResource Cartao}">
+        <StackPanel>
+          <DockPanel Margin="0,0,0,8">
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+              <Button x:Name="btnArquivosPjc" Content="Escolher arquivos…" Style="{StaticResource BotaoBase}" Margin="0,0,8,0"/>
+              <Button x:Name="btnPastaPjc" Content="Escolher pasta…" Style="{StaticResource BotaoBase}" Margin="0,0,8,0"/>
+              <Button x:Name="btnLimparPjc" Content="Limpar" Style="{StaticResource BotaoBase}"/>
+            </StackPanel>
+            <StackPanel>
+              <TextBlock Text="1. Arquivos .PJC" Style="{StaticResource TituloCartao}"/>
+              <TextBlock x:Name="txtResumoPjc" Text="Escolha arquivos .PJC ou uma pasta de backup." Foreground="{StaticResource TextoSuave}" Margin="0,2,0,0"/>
+            </StackPanel>
+          </DockPanel>
+          <TextBlock x:Name="txtSemPjc" Text="Nenhum arquivo escolhido. Dica: escolha a pasta de um backup feito por este programa, por exemplo  BKP PJC PJECALC\2026-11-07_2130\PJe-Calc 2.14.0."
+                     Foreground="{StaticResource TextoSuave}" TextWrapping="Wrap" Margin="2,6"/>
+          <ScrollViewer MaxHeight="170" VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding ArquivosPjc}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Border BorderBrush="#E6EBF1" BorderThickness="1" CornerRadius="8" Padding="12,5" Margin="0,0,0,5" Background="#FBFCFD">
+                    <DockPanel>
+                      <TextBlock DockPanel.Dock="Right" Text="{Binding Tamanho}" Foreground="{StaticResource TextoSuave}" VerticalAlignment="Center"/>
+                      <CheckBox IsChecked="{Binding Selecionado, Mode=TwoWay}" VerticalAlignment="Center">
+                        <StackPanel Margin="6,0,0,0">
+                          <TextBlock FontWeight="SemiBold" Text="{Binding Nome}" TextTrimming="CharacterEllipsis"/>
+                          <TextBlock Text="{Binding Origem}" Foreground="{StaticResource TextoSuave}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                        </StackPanel>
+                      </CheckBox>
+                    </DockPanel>
+                  </Border>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Style="{StaticResource Cartao}">
+        <StackPanel>
+          <TextBlock Text="2. Restaurar em" Style="{StaticResource TituloCartao}"/>
+          <TextBlock Text="Versão do PJe-Calc que vai receber os cálculos." Foreground="{StaticResource TextoSuave}" Margin="0,2,0,8"/>
+          <ComboBox x:Name="cmbDestino" ItemsSource="{Binding InstalacoesComBanco}" Padding="8,6" FontSize="13">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock><Run FontWeight="SemiBold" Text="{Binding Titulo, Mode=OneWay}"/><Run Foreground="#5B6775" Text="{Binding PastaEntreParenteses, Mode=OneWay}"/></TextBlock>
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <Border Background="#FFF7E6" BorderBrush="#F3D9A4" BorderThickness="1" CornerRadius="8" Padding="12,8" Margin="0,10,0,0">
+            <TextBlock TextWrapping="Wrap" Foreground="#7A4B00">
+              <Run FontWeight="SemiBold" Text="Atenção: "/><Run Text="cada arquivo vira um cálculo NOVO na versão escolhida (com número novo). Se o cálculo já existir lá, ele ficará duplicado. Antes de importar, o programa guarda uma cópia do banco atual na pasta de backups, para você poder desfazer."/>
+            </TextBlock>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="2" Style="{StaticResource Cartao}">
+        <Grid>
+          <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+          </Grid.RowDefinitions>
+          <DockPanel Grid.Row="0">
+            <Button x:Name="btnRestaurar" DockPanel.Dock="Right" Content="Restaurar" Style="{StaticResource BotaoPrimario}"/>
+            <StackPanel VerticalAlignment="Center" Margin="0,0,16,0">
+              <TextBlock Text="3. Restauração" Style="{StaticResource TituloCartao}"/>
+              <TextBlock x:Name="txtEtapaR" Text="Pronto para começar." Foreground="{StaticResource TextoSuave}" TextWrapping="Wrap" Margin="0,2,0,0"/>
+            </StackPanel>
+          </DockPanel>
+          <ProgressBar Grid.Row="1" x:Name="barraR" Margin="0,10,0,0" Maximum="1" Value="0"/>
+          <Border Grid.Row="2" Margin="0,10,0,0" MinHeight="90" BorderBrush="#E6EBF1" BorderThickness="1" CornerRadius="8" Background="#FBFCFD">
+            <ScrollViewer x:Name="rolagemLogR" VerticalScrollBarVisibility="Auto" Padding="10,8">
+              <ItemsControl ItemsSource="{Binding LogRestauracao}" ItemTemplate="{StaticResource ModeloLog}"/>
+            </ScrollViewer>
+          </Border>
+        </Grid>
+      </Border>
+    </Grid>
+
+    <!-- Rodapé -->
+    <Border Grid.Row="3" BorderBrush="{StaticResource Borda}" BorderThickness="0,1,0,0" Background="White" Padding="24,10">
+      <DockPanel>
+        <TextBlock DockPanel.Dock="Right">
+          <Hyperlink x:Name="lnkGithub" Foreground="{StaticResource Primaria}">Código-fonte e ajuda</Hyperlink>
+        </TextBlock>
+        <TextBlock x:Name="txtRodape" Foreground="{StaticResource TextoSuave}" FontSize="12"
+                   Text="Projeto independente e não oficial. Tudo roda só neste computador."/>
+      </DockPanel>
+    </Border>
+  </Grid>
+</Window>

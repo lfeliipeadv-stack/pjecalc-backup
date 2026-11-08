@@ -1,0 +1,10 @@
+# Dados de clientes e bancos do PJe-Calc NUNCA devem ir para o repositorio
+*.PJC
+*.pjc
+*.h2.db
+*.lock.db
+*.trace.db
+*.zip
+relatorio.txt
+BKP PJC PJECALC/
+app/saida/

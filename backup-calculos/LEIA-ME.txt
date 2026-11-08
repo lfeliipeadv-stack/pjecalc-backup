@@ -1,0 +1,48 @@
+Backup de todos os cálculos do PJe-Calc em .PJC
+===============================================
+
+Instalação
+----------
+Copie esta pasta "backup-calculos" para dentro da pasta do PJe-Calc
+(ao lado de iniciarPjeCalc.bat) e dê dois cliques em criar-atalho.bat.
+
+
+Como usar
+---------
+Dê dois cliques no atalho "Backup PJe-Calc" na Área de Trabalho
+(ou em backup-calculos.bat, nesta pasta).
+
+O script:
+  1. abre o PJe-Calc, se ele não estiver aberto (e deixa aberto);
+  2. busca TODOS os cálculos (passa por todas as páginas da busca);
+  3. para cada um faz Abrir > Exportar > Fechar, como você faria à mão,
+     usando o Edge em modo invisível;
+  4. grava os .PJC em
+        Área de Trabalho\BKP PJC PJECALC\<data-hora> (PJe-Calc <versão>)\
+     com o nome do reclamante no nome do arquivo, e um relatorio.txt.
+
+Cada execução cria uma pasta nova, então os backups antigos não são apagados.
+
+Não altera nenhum cálculo. O único efeito visível é que os cálculos passam
+pela lista "Abrir Cálculos Recentes" da tela inicial.
+
+Pode continuar usando o PJe-Calc enquanto o backup roda, mas evite editar e
+salvar cálculos nesse momento.
+
+
+Opções (para quem usa o PowerShell)
+-----------------------------------
+  -Destino "D:\outra\pasta"     grava em outra pasta (ex.: pen drive)
+
+  powershell -ExecutionPolicy Bypass -File backup-calculos.ps1 -Destino "E:\Backup"
+
+
+Depois de atualizar o PJe-Calc
+------------------------------
+Copie esta pasta "backup-calculos" para dentro da pasta da nova versão
+e recrie o atalho (ou ajuste o destino do atalho existente).
+
+
+Requisitos
+----------
+Microsoft Edge ou Google Chrome instalado (o Windows 11 já tem o Edge).
