@@ -27,7 +27,70 @@ namespace PjeCalcBackup
             new Paleta { Nome = "Violeta",   P = "#5B4B9A", PE = "#463A7A", PC = "#EEEBF7", CA = "#463A7A", CB = "#5B4B9A", DP = "#7B69C2", DPE = "#6554A8", DPC = "#26223A", DCA = "#221D36", DCB = "#3A3166" },
             new Paleta { Nome = "Terracota", P = "#B4532A", PE = "#8E3F1F", PC = "#FBEDE6", CA = "#8E3F1F", CB = "#B4532A", DP = "#C9683D", DPE = "#A9532E", DPC = "#3A241B", DCA = "#331C14", DCB = "#5A3020" },
             new Paleta { Nome = "Grafite",   P = "#3F4C5A", PE = "#2C3641", PC = "#ECEFF2", CA = "#2C3641", CB = "#3F4C5A", DP = "#5F7184", DPE = "#4D5D6E", DPC = "#252C33", DCA = "#1A2026", DCB = "#2F3943" },
+            Gerar("Petróleo", "#11707A"),
+            Gerar("Vinho",    "#8B2942"),
+            Gerar("Índigo",   "#3949A3"),
+            Gerar("Oliva",    "#5A6B24"),
+            Gerar("Dourado",  "#8A6200"),
+            Gerar("Rosa",     "#B03A73"),
+            Gerar("Café",     "#6B4636"),
+            Gerar("Oceano",   "#0A6FA6"),
+            Gerar("Vermelho", "#C62828"),
+            Gerar("Laranja",  "#BF5F00"),
+            Gerar("Floresta", "#2E7D32"),
+            Gerar("Turquesa", "#00897B"),
+            Gerar("Céu",      "#1E7FD0"),
+            Gerar("Marinho",  "#1F3A68"),
+            Gerar("Lavanda",  "#7E57C2"),
+            Gerar("Ameixa",   "#7B1F5E"),
+            Gerar("Caramelo", "#9C6B3E"),
+            Gerar("Preto",    "#1A1A1A"),
+            new Paleta { Nome = "Branco", P = "#DCE0E5", PE = "#C3C9D0", PC = "#F4F6F8", CA = "#FFFFFF", CB = "#EEF1F4",
+                         DP = "#F1F3F5", DPE = "#DEE2E6", DPC = "#2A2F35", DCA = "#2A2F35", DCB = "#3A4048" },
+            Gerar("Amarelo",  "#F2C200"),
+            Gerar("Pink",     "#E91E8C"),
+            Gerar("Ciano",    "#00ACC1"),
+            Gerar("Limão",    "#8BC34A"),
+            Gerar("Salmão",   "#F28B6E"),
+            Gerar("Lilás",    "#B39DDB"),
+            Gerar("Menta",    "#3DBE9C"),
+            Gerar("Royal",    "#2550D8"),
+            Gerar("Roxo",     "#8E24AA"),
         };
+
+        /// <summary>Luminância relativa (0 = preto, 1 = branco), para escolher texto claro ou escuro sobre a cor.</summary>
+        private static double Luz(string hex)
+        {
+            var c = (Color)ColorConverter.ConvertFromString(hex);
+            Func<byte, double> l = v => { double s = v / 255.0; return s <= 0.03928 ? s / 12.92 : Math.Pow((s + 0.055) / 1.055, 2.4); };
+            return 0.2126 * l(c.R) + 0.7152 * l(c.G) + 0.0722 * l(c.B);
+        }
+
+        private static string Misturar(string a, string b, double t)
+        {
+            var x = (Color)ColorConverter.ConvertFromString(a); var y = (Color)ColorConverter.ConvertFromString(b);
+            return string.Format("#{0:X2}{1:X2}{2:X2}", (int)Math.Round(x.R + (y.R - x.R) * t), (int)Math.Round(x.G + (y.G - x.G) * t), (int)Math.Round(x.B + (y.B - x.B) * t));
+        }
+
+        /// <summary>Texto escuro sobre cores claras (amarelo, branco, ciano…), branco sobre as demais.</summary>
+        private static bool PedeTextoEscuro(string fundo) { return Luz(fundo) > 0.36; }
+
+        /// <summary>Monta as variações (clara/escura, tema claro e escuro) a partir de uma cor base.</summary>
+        private static Paleta Gerar(string nome, string baseHex)
+        {
+            var b = (Color)ColorConverter.ConvertFromString(baseHex);
+            Func<string, double, string> mix = (outra, t) =>
+            {
+                var o = (Color)ColorConverter.ConvertFromString(outra);
+                return string.Format("#{0:X2}{1:X2}{2:X2}",
+                    (int)Math.Round(b.R + (o.R - b.R) * t), (int)Math.Round(b.G + (o.G - b.G) * t), (int)Math.Round(b.B + (o.B - b.B) * t));
+            };
+            return new Paleta
+            {
+                Nome = nome, P = baseHex, PE = mix("#000000", 0.22), PC = mix("#FFFFFF", 0.90), CA = mix("#000000", 0.22), CB = baseHex,
+                DP = mix("#FFFFFF", 0.22), DPE = mix("#FFFFFF", 0.06), DPC = mix("#1D232A", 0.82), DCA = mix("#14181D", 0.78), DCB = mix("#14181D", 0.55)
+            };
+        }
 
         private static readonly Dictionary<string, string> Claro = new Dictionary<string, string>
         {
@@ -87,6 +150,23 @@ namespace PjeCalcBackup
                                             (Color)ColorConverter.ConvertFromString(escuro ? p.DCB : p.CB), new Point(0, 0), new Point(1, 1));
             g.Freeze();
             r["Cabecalho"] = g;
+
+            // cores claras (amarelo, branco…) pedem texto escuro em cima delas
+            string prim = escuro ? p.DP : p.P;
+            r["SobrePrimaria"] = Pincel(PedeTextoEscuro(prim) ? "#1F2933" : "#FFFFFF");
+            string cab = Misturar(escuro ? p.DCA : p.CA, escuro ? p.DCB : p.CB, 0.5);
+            if (PedeTextoEscuro(cab)) { r["TextoCabecalho"] = Pincel("#1F2933"); r["TextoCabecalhoSuave"] = Pincel("#4A5663"); }
+
+            // a cor da paleta usada como texto (links, títulos do registro) precisa contrastar com o fundo
+            string texto = prim;
+            for (int i = 0; i < 8; i++)
+            {
+                double l = Luz(texto);
+                if (!escuro && l > 0.16) texto = Misturar(texto, "#000000", 0.15);
+                else if (escuro && l < 0.14) texto = Misturar(texto, "#FFFFFF", 0.15);
+                else break;
+            }
+            r["PrimariaTexto"] = Pincel(texto);
             r["Escuro"] = escuro;
             foreach (Window w in Application.Current.Windows) BarraDeTitulo(w, escuro);
         }

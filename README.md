@@ -5,11 +5,15 @@ Programa para Windows que faz **backup, restauração e migração dos cálculos
 - **Backup:** exporta os cálculos em `.PJC` (todos ou só os escolhidos) e copia o banco de dados completo de cada versão, com **conferência** ("12 de 12 conferidos").
 - **Restauração:** importa arquivos `.PJC` **avisando os que parecem já existir**, ou restaura o banco completo de um backup.
 - **Migração entre versões:** leva os cálculos de uma versão para outra (ex.: da 2.14 para a 2.16) num clique, sem duplicar os que já existem.
-- **Histórico** dos backups, **lembrete** de backup, aviso de **nova versão**, **temas** claro/escuro e 5 paletas de cores, **sons** e **notificações** do Windows.
-- **Versão para o CMD**, com menus interativos e um modo automático para agendar.
+- **Backup automático** em dias e horário escolhidos (Agendador de Tarefas do Windows).
+- **Busca** de um cálculo dentro de todos os backups, por nome ou nº do processo, com botão para restaurar só aquele.
+- **Planilha (Excel)** com todos os cálculos das versões instaladas.
+- **Limpeza de backups antigos** (vão para a Lixeira) e **atualização com um clique**, conferindo o SHA-256.
+- **Histórico** dos backups, **lembrete** de backup, **temas** claro/escuro e 33 paletas de cores, **sons** e **notificações** do Windows.
+- **Versão para o CMD**, com menus interativos e um modo automático.
 
 > [!IMPORTANT]
-> Projeto **independente e não oficial**. Não tem vínculo com o TRT da 8ª Região, o CSJT ou a equipe do PJe-Calc. Use por sua conta e risco.
+> Projeto **independente e não oficial**. Não tem vínculo com nenhum TRT, com o CSJT ou com a equipe do PJe-Calc. Use por sua conta e risco.
 
 Testado no PJe-Calc Cidadão **2.14.0** e **2.16.0**, no Windows 11.
 
@@ -30,6 +34,12 @@ Não precisa instalar. Funciona no Windows 10 e 11.
 
 ---
 
+## Sobre 🇧🇷
+
+Este programa nasceu de uma dificuldade real no dia a dia da advocacia: ao instalar uma versão nova do PJe-Calc, os cálculos não vão junto, e a única saída era exportar e importar um por um, manualmente, o que levava horas. O PJe-Calc Backup faz isso de forma automática e segura, com conferência no final.
+
+Projeto independente, gratuito e de código aberto, feito no Brasil.
+
 ## Por que existe
 
 O PJe-Calc guarda os cálculos num banco de dados **dentro da pasta de cada versão** (`.dados\pjecalc.h2.db`). Quando se instala uma versão nova em outra pasta, os cálculos antigos **não vão junto**, e não há backup automático. Exportar e importar cálculo por cálculo pela tela é demorado.
@@ -40,7 +50,7 @@ Cada operação é feita **em etapas**, com **Voltar**, **Avançar** e **Conclui
 
 ### Backup
 1. **Versões:** o programa encontra sozinho as versões instaladas e mostra o estado (*Fechada* / *Aberta agora*) e o número de cálculos de cada uma.
-2. **Cálculos:** a lista é lida direto do banco, sem abrir o PJe-Calc. Mostra número, reclamante, reclamado, processo e datas; tem filtro e "Marcar/Desmarcar todos".
+2. **Cálculos:** a lista é lida direto do banco, sem abrir o PJe-Calc. Cada versão aparece recolhida, com quantos cálculos estão marcados e o botão **Mostrar cálculos**. Mostra número, reclamante, reclamado, processo e datas. Tem filtro, ordenação (número, nome ou mais recentes), "Marcar só os criados nos últimos 7/30/90 dias" e "Marcar/Desmarcar todos". Os cálculos que você desmarcou vêm desmarcados de novo no próximo backup.
 3. **Destino:** a pasta e o que incluir (`.PJC` e/ou o banco completo).
 4. **Backup:** barra de progresso, registro de cada cálculo e conferência no final.
 
@@ -57,7 +67,7 @@ BKP PJC PJECALC\
 ```
 
 ### Restaurar
-- **Cálculos (.PJC):** escolha arquivos ou uma pasta de backup e a versão de destino. O programa lê os `.PJC`, compara com os cálculos do destino e mostra **"Parece já existir (nº 35)"**. Esses vêm desmarcados, para não duplicar. Cada arquivo importado vira um cálculo novo, com número novo.
+- **Cálculos (.PJC):** escolha arquivos ou uma pasta de backup (os arquivos aparecem agrupados pela versão de onde vieram) e a versão de destino. O programa lê os `.PJC`, compara com os cálculos do destino e mostra **"Parece já existir (nº 35)"**. Esses vêm desmarcados, para não duplicar. Cada arquivo importado vira um cálculo novo, com número novo.
 - **Banco completo (.zip):** volta a versão inteira para como estava no backup. Só é permitido na mesma versão do PJe-Calc do backup.
 
 Nos dois casos, **antes de mexer em qualquer coisa** o programa guarda uma cópia do banco atual numa pasta `… (antes da restauração)`, para você poder desfazer.
@@ -65,27 +75,41 @@ Nos dois casos, **antes de mexer em qualquer coisa** o programa guarda uma cópi
 ### Migrar entre versões
 Escolha a versão de origem e a de destino. Os cálculos que já existem no destino vêm desmarcados. O programa exporta da origem (que não é alterada), guarda uma cópia do banco de destino e importa os escolhidos.
 
-### Histórico
+### Histórico e busca
 Lista os backups, restaurações e migrações feitos na pasta de backups, com data, versões, quantidade de cálculos e conferência. Cada item tem os botões **Abrir pasta**, **Restaurar .PJC** e **Restaurar banco**.
 
-### Configurações
-- **Aparência:** tema **Claro**, **Escuro** ou **Seguir o Windows**, e 5 paletas de cores (Azul, Esmeralda, Violeta, Terracota e Grafite).
+A caixa de busca procura um cálculo **dentro de todos os backups** (nome do reclamante ou reclamado, nº do processo) e mostra em quais backups ele está, com os botões **Mostrar arquivo** e **Restaurar** (restaura só aquele cálculo). O botão **Limpar antigos…** aplica a regra de limpeza.
+
+### Planilha (Excel)
+Na etapa 1 do Backup, o botão **Planilha (Excel)…** salva um `.xlsx` com todos os cálculos das versões marcadas: versão, número, reclamante, reclamado, processo e datas, com filtro e cabeçalho fixo. Não precisa do Excel para gerar. A planilha tem nomes das partes: guarde-a em local seguro.
+
+### Configurações (⚙, à direita das abas)
+- **Aparência:** tema **Claro**, **Escuro** ou **Seguir o Windows**, e 33 paletas de cores, inclusive Preto, Branco, Amarelo e Pink (nas cores claras o texto fica escuro, para continuar legível).
 - **Avisos ao terminar:** som do próprio Windows (sucesso ou erro), notificação do Windows, abrir a pasta ao terminar e reabrir o PJe-Calc no final.
-- **Backups:** a pasta padrão e o **lembrete** ("Seu último backup foi há 12 dias"), a cada 7, 15 ou 30 dias.
-- **Atualizações:** verifica no GitHub se há versão nova. Só consulta a página do projeto; nenhum dado seu é enviado.
+- **Backups:** a pasta padrão, o **lembrete** ("Seu último backup foi há 12 dias") e a **limpeza de backups antigos**: "manter só os últimos 5/10/20/30" ou "apagar os com mais de 3/6/12 meses". Ao terminar um backup, o programa mostra quais sairiam e pergunta antes. Eles vão para a **Lixeira**. O backup mais recente sem falhas nunca é apagado, e as cópias de segurança de restaurações e migrações não entram na limpeza.
+- **Backup automático:** todos os dias ou em dias da semana, no horário escolhido. Cria a tarefa "PJe-Calc Backup automático" no Agendador de Tarefas do Windows. Roda com você conectado; se o computador estiver desligado na hora marcada, roda assim que ele for ligado. Se o PJe-Calc estiver aberto, uma janela avisa e espera 2 minutos antes de fechá-lo com segurança; dá para fazer na hora, adiar 30 minutos ou pular. No final aparece uma notificação.
+- **Atualizações:** verifica no GitHub se há versão nova. Só consulta a página do projeto; nenhum dado seu é enviado. Com **Atualizar agora**, o programa baixa a versão nova, confere o SHA-256 de cada arquivo e se reinicia.
 
 Durante uma operação, o ícone na **barra de tarefas** mostra o progresso.
 
 ## Versão para o CMD
 
-Dê dois cliques em **`backup-calculos.bat`** (vem no pacote `.zip`). Ele abre o `PJeCalcBackup-Console.exe`, com menus navegados pelas setas, Enter, Espaço (para marcar) e Esc. Tem as mesmas funções: backup escolhendo versões, cálculos e pasta; restauração com aviso de duplicados; migração; restauração do banco; histórico; configurações.
+Dê dois cliques em **`backup-calculos.bat`** (vem no pacote `.zip`). Ele abre o `PJeCalcBackup-Console.exe`, com menus navegados pelas setas, Enter, Espaço (para marcar) e Esc. Tem as mesmas funções: backup escolhendo versões, cálculos e pasta; restauração com aviso de duplicados; migração; restauração do banco; histórico; busca nos backups; planilha; limpeza; configurações (inclusive backup automático e atualização).
 
-**Modo automático**, sem perguntas, para agendar no Agendador de Tarefas do Windows:
+**Arrastar e soltar:** arraste arquivos `.PJC` (ou uma pasta de backup) sobre o `backup-calculos.bat` para restaurá-los. Arraste o `.zip` de um backup do banco para restaurar o banco.
+
+**Modo automático**, sem perguntas:
 
 ```
 PJeCalcBackup-Console.exe --backup [--destino "pasta"] [--versoes 2.16.0,2.14.0]
                           [--pasta "C:\pjecalc-..."] [--sem-pjc] [--sem-banco] [--nao-reabrir]
+                          [--agendado] [--limpar]
+PJeCalcBackup-Console.exe --atualizar
 ```
+
+- `--agendado`: é o que o backup automático usa. Respeita as versões desmarcadas no programa, avisa se o PJe-Calc estiver aberto e mostra uma notificação no final.
+- `--limpar`: depois do backup, aplica a limpeza de backups antigos sem perguntar.
+- `--atualizar`: baixa e instala a versão nova, conferindo o SHA-256.
 
 O código de saída é 0 quando deu tudo certo e 1 quando houve falhas.
 
@@ -105,7 +129,7 @@ O código de saída é 0 quando deu tudo certo e 1 quando houve falhas.
 
 ## Privacidade
 
-- Tudo roda **somente no seu computador** (`127.0.0.1`). A única consulta à internet é a verificação de versão nova no GitHub, que pode ser desligada.
+- Tudo roda **somente no seu computador** (`127.0.0.1`). A internet só é usada para verificar se há versão nova no GitHub (pode ser desligada) e, quando você clica em **Atualizar agora**, para baixá-la.
 - Os arquivos `.PJC` e o banco contêm dados pessoais das partes (nomes, CPF etc.). Guarde os backups em local seguro e **nunca** os coloque em repositórios públicos. O [`.gitignore`](.gitignore) deste projeto já bloqueia esses arquivos.
 
 ## Limitações conhecidas
@@ -129,6 +153,16 @@ powershell -ExecutionPolicy Bypass -File app\compilar.ps1
 
 Encontrou um problema ou testou em outra versão? Abra uma *issue* dizendo a versão do PJe-Calc e do Windows e colando o `relatorio.txt`, **sem dados de clientes**.
 
+## ❤️ Apoie este projeto
+
+O PJe-Calc Backup é gratuito e continuará sendo. Se ele economizou o seu tempo, você pode apoiar o desenvolvimento com um PIX de qualquer valor. Obrigado!
+
+**Chave PIX (aleatória):** `7828ccd8-a4ad-4757-8acf-6d968c74c3a8`
+
+<img src="docs/apoie-pix.png" alt="QR Code PIX para apoiar o projeto" width="220">
+
+No app do banco: **Pix → Pagar com chave** (cole a chave) ou leia o QR Code. O nome do recebedor aparece antes de você confirmar. A chave e o QR Code também ficam no programa, em ⚙ → **Apoie este projeto**.
+
 ## Licença
 
-[MIT](LICENSE)
+[MIT](LICENSE): software livre. Pode usar, copiar, modificar e compartilhar, mantendo o aviso de autoria. É fornecido sem garantia.

@@ -100,7 +100,7 @@
 
     <Style x:Key="BotaoLink" TargetType="Button">
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Foreground" Value="{DynamicResource Primaria}"/>
+      <Setter Property="Foreground" Value="{DynamicResource PrimariaTexto}"/>
       <Setter Property="FontWeight" Value="SemiBold"/>
       <Setter Property="Template">
         <Setter.Value>
@@ -169,14 +169,14 @@
     <!-- amostra de paleta (círculo colorido) -->
     <Style x:Key="Amostra" TargetType="RadioButton">
       <Setter Property="Cursor" Value="Hand"/>
-      <Setter Property="Margin" Value="0,0,14,0"/>
+      <Setter Property="Margin" Value="0,0,4,10"/>
       <Setter Property="Template">
         <Setter.Value>
           <ControlTemplate TargetType="RadioButton">
-            <StackPanel>
+            <StackPanel Width="70" Background="Transparent">
               <Grid Width="40" Height="40" HorizontalAlignment="Center">
                 <Ellipse x:Name="anel" Stroke="Transparent" StrokeThickness="3"/>
-                <Ellipse Margin="5" Fill="{TemplateBinding Background}"/>
+                <Ellipse Margin="5" Fill="{TemplateBinding Background}" Stroke="{DynamicResource BordaControle}" StrokeThickness="1"/>
               </Grid>
               <TextBlock Text="{TemplateBinding Content}" HorizontalAlignment="Center" FontSize="12" Margin="0,4,0,0" Foreground="{DynamicResource TextoSuave}"/>
             </StackPanel>
@@ -357,7 +357,7 @@
 
     <Style TargetType="ProgressBar">
       <Setter Property="Height" Value="8"/>
-      <Setter Property="Foreground" Value="{DynamicResource Primaria}"/>
+      <Setter Property="Foreground" Value="{DynamicResource PrimariaTexto}"/>
       <Setter Property="Background" Value="{DynamicResource Trilho}"/>
       <Setter Property="Template">
         <Setter.Value>
@@ -401,10 +401,19 @@
     <!-- lista de cálculos (com cabeçalhos de grupo) -->
     <DataTemplate x:Key="ModeloCalculo">
       <Grid>
-        <Border Visibility="{Binding VisGrupo}" Margin="0,6,0,6" Padding="2,0">
-          <CheckBox IsChecked="{Binding Selecionado, Mode=TwoWay}">
-            <TextBlock FontWeight="SemiBold" FontSize="14" Text="{Binding Titulo}"/>
-          </CheckBox>
+        <!-- cabeçalho da versão: marca/desmarca todos dela e mostra/oculta os cálculos -->
+        <Border Visibility="{Binding VisGrupo}" Style="{StaticResource Item}" Margin="0,2,0,6" Padding="14,10"
+                Background="{DynamicResource PrimariaClara}">
+          <DockPanel>
+            <Button DockPanel.Dock="Right" Content="{Binding TextoExpandir}" Tag="{Binding}" Style="{StaticResource BotaoBase}"
+                    Padding="12,5" VerticalAlignment="Center" MinWidth="150"/>
+            <CheckBox IsChecked="{Binding Selecionado, Mode=TwoWay}" VerticalAlignment="Center">
+              <StackPanel>
+                <TextBlock FontWeight="SemiBold" FontSize="15" Text="{Binding Titulo}"/>
+                <TextBlock Text="{Binding ResumoGrupo}" Foreground="{DynamicResource TextoSuave}" FontSize="12" Margin="0,1,0,0"/>
+              </StackPanel>
+            </CheckBox>
+          </DockPanel>
         </Border>
         <Border Visibility="{Binding VisItem}" Style="{StaticResource Item}" Margin="18,0,0,5">
           <DockPanel>
@@ -440,7 +449,7 @@
     <Border Grid.Row="0" Padding="24,14" Background="{DynamicResource Cabecalho}">
       <DockPanel>
         <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="11" Background="#33FFFFFF" Margin="0,0,16,0">
-          <Path Fill="White" Stretch="Uniform" Margin="11"
+          <Path Fill="{DynamicResource TextoCabecalho}" Stretch="Uniform" Margin="11"
                 Data="M12,2 L20,5.5 L20,11 C20,16 16.6,20.4 12,22 C7.4,20.4 4,16 4,11 L4,5.5 Z M11,7 L11,12.6 L8.7,10.3 L7.3,11.7 L12,16.4 L16.7,11.7 L15.3,10.3 L13,12.6 L13,7 Z"/>
         </Border>
         <StackPanel VerticalAlignment="Center">
@@ -456,7 +465,8 @@
       <Border x:Name="avisoAtualizacao" Visibility="Collapsed" Background="{DynamicResource PrimariaClara}" BorderBrush="{DynamicResource Primaria}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
         <DockPanel>
           <Button x:Name="btnFecharAtualizacao" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"/>
-          <Button x:Name="btnBaixarAtualizacao" DockPanel.Dock="Right" Content="Baixar" Style="{StaticResource BotaoBase}" Padding="12,4"/>
+          <Button x:Name="btnBaixarAtualizacao" DockPanel.Dock="Right" Content="Atualizar agora" Style="{StaticResource BotaoBase}" Padding="12,4"/>
+          <Button x:Name="btnNovidades" DockPanel.Dock="Right" Content="O que mudou" Style="{StaticResource BotaoLink}" Margin="0,0,10,0" VerticalAlignment="Center"/>
           <TextBlock x:Name="txtAtualizacao" VerticalAlignment="Center" TextWrapping="Wrap" Text="Nova versão disponível."/>
         </DockPanel>
       </Border>
@@ -470,13 +480,35 @@
     </StackPanel>
 
     <!-- ======================================================== abas -->
-    <StackPanel Grid.Row="2" Orientation="Horizontal" Margin="22,10,22,0">
+    <DockPanel Grid.Row="2" Margin="22,10,22,0" LastChildFill="False">
+      <!-- engrenagem: Configurações, Sobre e Apoie -->
+      <RadioButton x:Name="abaConfig" DockPanel.Dock="Right" GroupName="abas" Style="{StaticResource Aba}" Margin="0"
+                   ToolTip="Configurações, sobre o programa e apoio" AutomationProperties.Name="Configurações" Padding="0">
+        <Path Width="20" Height="20" Stretch="Uniform" Margin="-4,1,-4,1"
+              Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}">
+          <Path.Data>
+            <CombinedGeometry GeometryCombineMode="Exclude">
+              <CombinedGeometry.Geometry1>
+                <GeometryGroup FillRule="Nonzero">
+                  <EllipseGeometry Center="10,10" RadiusX="6.6" RadiusY="6.6"/>
+                  <RectangleGeometry Rect="8.2,0.6,3.6,18.8" RadiusX="1" RadiusY="1"/>
+                  <RectangleGeometry Rect="8.2,0.6,3.6,18.8" RadiusX="1" RadiusY="1"><RectangleGeometry.Transform><RotateTransform Angle="45" CenterX="10" CenterY="10"/></RectangleGeometry.Transform></RectangleGeometry>
+                  <RectangleGeometry Rect="8.2,0.6,3.6,18.8" RadiusX="1" RadiusY="1"><RectangleGeometry.Transform><RotateTransform Angle="90" CenterX="10" CenterY="10"/></RectangleGeometry.Transform></RectangleGeometry>
+                  <RectangleGeometry Rect="8.2,0.6,3.6,18.8" RadiusX="1" RadiusY="1"><RectangleGeometry.Transform><RotateTransform Angle="135" CenterX="10" CenterY="10"/></RectangleGeometry.Transform></RectangleGeometry>
+                </GeometryGroup>
+              </CombinedGeometry.Geometry1>
+              <CombinedGeometry.Geometry2>
+                <EllipseGeometry Center="10,10" RadiusX="3" RadiusY="3"/>
+              </CombinedGeometry.Geometry2>
+            </CombinedGeometry>
+          </Path.Data>
+        </Path>
+      </RadioButton>
       <RadioButton x:Name="abaBackup" GroupName="abas" Style="{StaticResource Aba}" Content="Backup" IsChecked="True"/>
       <RadioButton x:Name="abaRestaurar" GroupName="abas" Style="{StaticResource Aba}" Content="Restaurar"/>
       <RadioButton x:Name="abaMigrar" GroupName="abas" Style="{StaticResource Aba}" Content="Migrar entre versões"/>
       <RadioButton x:Name="abaHistorico" GroupName="abas" Style="{StaticResource Aba}" Content="Histórico"/>
-      <RadioButton x:Name="abaConfig" GroupName="abas" Style="{StaticResource Aba}" Content="Configurações"/>
-    </StackPanel>
+    </DockPanel>
 
     <!-- ================================================================ BACKUP -->
     <Grid x:Name="painelBackup" Grid.Row="3" Margin="22,10,22,6">
@@ -489,7 +521,9 @@
           <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
             <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
               <Button x:Name="btnProcurar" Content="Procurar de novo" Style="{StaticResource BotaoBase}" Margin="0,0,8,0"/>
-              <Button x:Name="btnAdicionar" Content="Adicionar pasta…" Style="{StaticResource BotaoBase}"/>
+              <Button x:Name="btnAdicionar" Content="Adicionar pasta…" Style="{StaticResource BotaoBase}" Margin="0,0,8,0"/>
+              <Button x:Name="btnPlanilha" Content="Planilha (Excel)…" Style="{StaticResource BotaoBase}"
+                      ToolTip="Salva uma planilha com todos os cálculos das versões marcadas (número, reclamante, reclamado, processo e datas)"/>
             </StackPanel>
             <StackPanel>
               <TextBlock Text="Quais versões do PJe-Calc entram no backup?" Style="{StaticResource Titulo}"/>
@@ -513,6 +547,19 @@
               <Button x:Name="btnBkNenhum" DockPanel.Dock="Right" Content="Desmarcar todos" Style="{StaticResource BotaoBase}" Margin="8,0,0,0"/>
               <Button x:Name="btnBkTodos" DockPanel.Dock="Right" Content="Marcar todos" Style="{StaticResource BotaoBase}" Margin="8,0,0,0"/>
               <TextBox x:Name="txtFiltroBk" Style="{StaticResource CaixaTexto}" Tag="🔍  Filtrar por nome, número ou processo…"/>
+            </DockPanel>
+            <DockPanel Margin="0,8,0,0">
+              <ComboBox x:Name="cmbOrdemBk" DockPanel.Dock="Right" Width="230" Margin="8,0,0,0" SelectedIndex="0">
+                <ComboBoxItem Content="Ordenar por número"/>
+                <ComboBoxItem Content="Ordenar por nome"/>
+                <ComboBoxItem Content="Mais recentes primeiro"/>
+              </ComboBox>
+              <StackPanel Orientation="Horizontal">
+                <TextBlock Text="Marcar só os criados nos últimos" VerticalAlignment="Center" Foreground="{DynamicResource TextoSuave}" Margin="2,0,8,0"/>
+                <Button x:Name="btnBk7" Content="7 dias" Style="{StaticResource BotaoBase}" Padding="10,5" Margin="0,0,6,0"/>
+                <Button x:Name="btnBk30" Content="30 dias" Style="{StaticResource BotaoBase}" Padding="10,5" Margin="0,0,6,0"/>
+                <Button x:Name="btnBk90" Content="90 dias" Style="{StaticResource BotaoBase}" Padding="10,5"/>
+              </StackPanel>
             </DockPanel>
           </StackPanel>
           <TextBlock x:Name="txtStatusBk" DockPanel.Dock="Top" Style="{StaticResource Suave}" Margin="2,0,0,6"/>
@@ -611,20 +658,33 @@
             </StackPanel>
           </DockPanel>
           <ScrollViewer VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding ArquivosPjc}">
+            <ItemsControl x:Name="lstArquivosPjc" ItemsSource="{Binding ArquivosPjc}">
               <ItemsControl.ItemTemplate>
                 <DataTemplate>
-                  <Border Style="{StaticResource Item}">
-                    <DockPanel>
-                      <TextBlock DockPanel.Dock="Right" Text="{Binding Tamanho}" Foreground="{DynamicResource TextoSuave}" VerticalAlignment="Center"/>
-                      <CheckBox IsChecked="{Binding Selecionado, Mode=TwoWay}">
-                        <StackPanel>
-                          <TextBlock FontWeight="SemiBold" Text="{Binding Nome}" TextTrimming="CharacterEllipsis"/>
-                          <TextBlock Text="{Binding Origem}" Foreground="{DynamicResource TextoSuave}" FontSize="12" TextTrimming="CharacterEllipsis"/>
-                        </StackPanel>
-                      </CheckBox>
-                    </DockPanel>
-                  </Border>
+                  <Grid>
+                    <Border Visibility="{Binding VisGrupo}" Style="{StaticResource Item}" Margin="0,2,0,6" Padding="14,10" Background="{DynamicResource PrimariaClara}">
+                      <DockPanel>
+                        <Button DockPanel.Dock="Right" Content="{Binding TextoExpandir}" Tag="{Binding}" Style="{StaticResource BotaoBase}" Padding="12,5" VerticalAlignment="Center" MinWidth="150"/>
+                        <CheckBox IsChecked="{Binding Selecionado, Mode=TwoWay}" VerticalAlignment="Center">
+                          <StackPanel>
+                            <TextBlock FontWeight="SemiBold" FontSize="15" Text="{Binding Titulo}"/>
+                            <TextBlock Text="{Binding ResumoGrupo}" Foreground="{DynamicResource TextoSuave}" FontSize="12" Margin="0,1,0,0"/>
+                          </StackPanel>
+                        </CheckBox>
+                      </DockPanel>
+                    </Border>
+                    <Border Visibility="{Binding VisItem}" Style="{StaticResource Item}" Margin="18,0,0,5">
+                      <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="{Binding Tamanho}" Foreground="{DynamicResource TextoSuave}" VerticalAlignment="Center"/>
+                        <CheckBox IsChecked="{Binding Selecionado, Mode=TwoWay}">
+                          <StackPanel>
+                            <TextBlock FontWeight="SemiBold" Text="{Binding Nome}" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Text="{Binding Origem}" Foreground="{DynamicResource TextoSuave}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+                          </StackPanel>
+                        </CheckBox>
+                      </DockPanel>
+                    </Border>
+                  </Grid>
                 </DataTemplate>
               </ItemsControl.ItemTemplate>
             </ItemsControl>
@@ -657,7 +717,7 @@
             <TextBlock x:Name="txtStatusRs" Style="{StaticResource Suave}" Margin="2,0,0,6"/>
           </StackPanel>
           <ScrollViewer x:Name="rsListaRevisao" VerticalScrollBarVisibility="Auto">
-            <ItemsControl ItemsSource="{Binding CalculosRestaurar}" ItemTemplate="{StaticResource ModeloCalculo}"/>
+            <ItemsControl x:Name="lstRevisaoRs" ItemsSource="{Binding CalculosRestaurar}" ItemTemplate="{StaticResource ModeloCalculo}"/>
           </ScrollViewer>
         </DockPanel>
       </Border>
@@ -755,14 +815,42 @@
     <Border x:Name="painelHistorico" Grid.Row="3" Margin="22,10,22,6" Style="{StaticResource Cartao}" Visibility="Collapsed">
       <DockPanel>
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,10">
-          <Button x:Name="btnAtualizarHist" DockPanel.Dock="Right" Content="Atualizar" Style="{StaticResource BotaoBase}" VerticalAlignment="Top"/>
+          <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Top">
+            <Button x:Name="btnLimparHist" Content="Limpar antigos…" Style="{StaticResource BotaoBase}" Margin="0,0,8,0"
+                    ToolTip="Move para a Lixeira os backups antigos, conforme a regra escolhida em Configurações"/>
+            <Button x:Name="btnAtualizarHist" Content="Atualizar" Style="{StaticResource BotaoBase}"/>
+          </StackPanel>
           <StackPanel>
             <TextBlock Text="Histórico" Style="{StaticResource Titulo}"/>
             <TextBlock x:Name="txtPastaHist" Style="{StaticResource Suave}" Margin="0,2,0,0"/>
           </StackPanel>
         </DockPanel>
+        <TextBox x:Name="txtBuscaHist" DockPanel.Dock="Top" Style="{StaticResource CaixaTexto}" Margin="0,0,0,6"
+                 Tag="🔍  Buscar um cálculo dentro dos backups: nome do reclamante ou reclamado, nº do processo…"/>
+        <TextBlock x:Name="txtStatusBusca" DockPanel.Dock="Top" Style="{StaticResource Suave}" Margin="2,0,0,6" Visibility="Collapsed"/>
         <TextBlock x:Name="txtSemHist" DockPanel.Dock="Top" Style="{StaticResource Suave}" Margin="2,4" Visibility="Collapsed" Text="Nenhum backup encontrado nesta pasta ainda."/>
-        <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <Grid>
+        <ScrollViewer x:Name="rolagemBusca" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+          <ItemsControl x:Name="lstBusca" ItemsSource="{Binding Busca}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Border Style="{StaticResource Item}" Padding="14,9" Margin="0,0,0,6">
+                  <DockPanel>
+                    <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                      <Button Content="Mostrar arquivo" Style="{StaticResource BotaoBase}" Tag="{Binding}" Margin="8,0,0,0" Padding="10,5"/>
+                      <Button Content="Restaurar" Style="{StaticResource BotaoBase}" Tag="{Binding}" Margin="8,0,0,0" Padding="10,5"/>
+                    </StackPanel>
+                    <StackPanel>
+                      <TextBlock FontWeight="SemiBold" Text="{Binding Titulo}" TextTrimming="CharacterEllipsis"/>
+                      <TextBlock Text="{Binding Detalhe}" Foreground="{DynamicResource TextoSuave}" FontSize="12" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                    </StackPanel>
+                  </DockPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+        <ScrollViewer x:Name="rolagemHist" VerticalScrollBarVisibility="Auto">
           <ItemsControl x:Name="lstHistorico" ItemsSource="{Binding Historico}">
             <ItemsControl.ItemTemplate>
               <DataTemplate>
@@ -784,6 +872,7 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
         </ScrollViewer>
+        </Grid>
       </DockPanel>
     </Border>
 
@@ -800,13 +889,8 @@
               <RadioButton x:Name="temaEscuro" GroupName="tema" Style="{StaticResource Opcao}" Tag="Escuro"><TextBlock Text="Escuro" FontWeight="SemiBold"/></RadioButton>
             </StackPanel>
             <TextBlock Text="Paleta de cores" FontWeight="SemiBold" Margin="0,16,0,8"/>
-            <StackPanel x:Name="paletas" Orientation="Horizontal">
-              <RadioButton GroupName="paleta" Style="{StaticResource Amostra}" Tag="0" Content="Azul" Background="#2F5D8F"/>
-              <RadioButton GroupName="paleta" Style="{StaticResource Amostra}" Tag="1" Content="Esmeralda" Background="#1E7A5A"/>
-              <RadioButton GroupName="paleta" Style="{StaticResource Amostra}" Tag="2" Content="Violeta" Background="#5B4B9A"/>
-              <RadioButton GroupName="paleta" Style="{StaticResource Amostra}" Tag="3" Content="Terracota" Background="#B4532A"/>
-              <RadioButton GroupName="paleta" Style="{StaticResource Amostra}" Tag="4" Content="Grafite" Background="#3F4C5A"/>
-            </StackPanel>
+            <!-- as amostras são criadas pelo programa a partir de Tema.Paletas -->
+            <WrapPanel x:Name="paletas" Orientation="Horizontal"/>
           </StackPanel>
         </Border>
 
@@ -846,21 +930,112 @@
                 <TextBlock><Run FontWeight="SemiBold" Text="Lembrete de backup"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — avisar ao abrir o programa quando o último backup passar de"/></TextBlock>
               </CheckBox>
             </DockPanel>
+            <DockPanel Margin="0,14,0,0">
+              <ComboBox x:Name="cmbLimpeza" DockPanel.Dock="Right" Width="270"/>
+              <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Limpeza de backups antigos"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — ao terminar um backup, oferece mover os antigos para a Lixeira"/></TextBlock>
+            </DockPanel>
+            <TextBlock Style="{StaticResource Suave}" Margin="0,6,0,0" TextWrapping="Wrap"
+                       Text="O backup mais recente sem falhas nunca é apagado. As cópias de segurança feitas antes de restaurações e migrações não entram na limpeza."/>
           </StackPanel>
         </Border>
 
         <Border Style="{StaticResource Cartao}">
           <StackPanel>
-            <TextBlock Text="Atualizações e sobre" Style="{StaticResource Titulo}"/>
+            <TextBlock Text="Backup automático" Style="{StaticResource Titulo}"/>
+            <TextBlock Style="{StaticResource Suave}" Margin="0,2,0,0" TextWrapping="Wrap"
+                       Text="Cria uma tarefa no Agendador de Tarefas do Windows. O backup roda com você conectado; se o computador estiver desligado na hora marcada, roda assim que for ligado."/>
+            <StackPanel Orientation="Horizontal" Margin="0,12,0,0">
+              <RadioButton x:Name="agDiario" GroupName="agenda" Style="{StaticResource Opcao}" Tag="diario"><TextBlock Text="Todos os dias" FontWeight="SemiBold"/></RadioButton>
+              <RadioButton x:Name="agSemanal" GroupName="agenda" Style="{StaticResource Opcao}" Tag="semanal"><TextBlock Text="Em dias da semana" FontWeight="SemiBold"/></RadioButton>
+            </StackPanel>
+            <WrapPanel x:Name="agDias" Margin="2,12,0,0"/>
+            <DockPanel Margin="0,10,0,0">
+              <TextBlock Text="Horário" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
+              <TextBox x:Name="txtAgHora" Style="{StaticResource CaixaTexto}" Width="80" HorizontalAlignment="Left" Tag="18:00"/>
+            </DockPanel>
+            <CheckBox x:Name="chkAgLimpar" Margin="0,12,0,0">
+              <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Depois do backup automático, aplicar a limpeza de backups antigos"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — sem perguntar; vão para a Lixeira"/></TextBlock>
+            </CheckBox>
+            <TextBlock Style="{StaticResource Suave}" Margin="0,10,0,0" TextWrapping="Wrap"
+                       Text="Usa a pasta de backups e as versões marcadas na aba Backup. Se o PJe-Calc estiver aberto, uma janela avisa e espera 2 minutos antes de fechá-lo com segurança (dá para adiar)."/>
+            <DockPanel Margin="0,12,0,0">
+              <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                <Button x:Name="btnAgRemover" Content="Desligar" Style="{StaticResource BotaoBase}" Margin="8,0,0,0"/>
+                <Button x:Name="btnAgSalvar" Content="Ligar / salvar" Style="{StaticResource BotaoPrimario}" Margin="8,0,0,0"/>
+              </StackPanel>
+              <TextBlock x:Name="txtAgEstado" VerticalAlignment="Center" TextWrapping="Wrap" Style="{StaticResource Suave}"/>
+            </DockPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Cartao}">
+          <StackPanel>
+            <TextBlock Text="Atualizações" Style="{StaticResource Titulo}"/>
             <CheckBox IsChecked="{Binding VerificarAtualizacoes, Mode=TwoWay}" Margin="0,12,0,10">
               <TextBlock><Run FontWeight="SemiBold" Text="Verificar se há versão nova ao abrir"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — consulta só a página do projeto no GitHub; nenhum dado seu é enviado"/></TextBlock>
             </CheckBox>
             <DockPanel>
+              <Button x:Name="btnAtualizarAgora" DockPanel.Dock="Right" Content="Atualizar agora" Style="{StaticResource BotaoPrimario}" Margin="8,0,0,0" Visibility="Collapsed"/>
               <Button x:Name="btnVerificarAgora" DockPanel.Dock="Right" Content="Verificar agora" Style="{StaticResource BotaoBase}"/>
               <TextBlock x:Name="txtVersao" VerticalAlignment="Center" Style="{StaticResource Suave}"/>
             </DockPanel>
-            <TextBlock Style="{StaticResource Suave}" Margin="0,12,0,0" Text="Projeto independente e não oficial, sem vínculo com o TRT8, o CSJT ou a equipe do PJe-Calc. Tudo roda só neste computador."/>
           </StackPanel>
+        </Border>
+
+        <!-- sobre -->
+        <Border x:Name="cartaoSobre" Style="{StaticResource Cartao}">
+          <StackPanel>
+            <StackPanel Orientation="Horizontal">
+              <TextBlock Text="Sobre o PJe-Calc Backup" Style="{StaticResource Titulo}" VerticalAlignment="Center"/>
+              <!-- bandeira do Brasil desenhada (o Windows não mostra a bandeira como emoji) -->
+              <Viewbox Width="30" Height="21" Margin="10,1,0,0" VerticalAlignment="Center" ToolTip="Feito no Brasil">
+                <Canvas Width="42" Height="30">
+                  <Rectangle Width="42" Height="30" Fill="#009C3B" RadiusX="3" RadiusY="3"/>
+                  <Polygon Points="21,3.5 38.5,15 21,26.5 3.5,15" Fill="#FFDF00"/>
+                  <Ellipse Canvas.Left="13.5" Canvas.Top="7.5" Width="15" Height="15" Fill="#002776"/>
+                  <Path Data="M14.1,13.4 Q21,11.3 27.9,16.8" Stroke="White" StrokeThickness="1.4"/>
+                </Canvas>
+              </Viewbox>
+            </StackPanel>
+            <TextBlock TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="21" Foreground="{DynamicResource Texto}"
+                       Text="Este programa nasceu de uma dificuldade real no dia a dia da advocacia: ao instalar uma versão nova do PJe-Calc, os cálculos não vão junto, e a única saída era exportar e importar um por um, manualmente, o que levava horas. O PJe-Calc Backup faz isso de forma automática e segura, com conferência no final."/>
+            <TextBlock TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource Texto}"
+                       Text="Projeto independente, gratuito e de código aberto, feito no Brasil."/>
+            <TextBlock Style="{StaticResource Suave}" TextWrapping="Wrap" Margin="0,10,0,0"
+                       Text="Não oficial: sem vínculo com nenhum TRT, com o CSJT ou com a equipe do PJe-Calc. Tudo roda só neste computador."/>
+            <DockPanel Margin="0,12,0,0">
+              <Button x:Name="btnLicenca" DockPanel.Dock="Right" Content="Ler a licença" Style="{StaticResource BotaoBase}" Padding="12,5"/>
+              <TextBlock TextWrapping="Wrap" VerticalAlignment="Center"><Run FontWeight="SemiBold" Text="Licença MIT"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — software livre: pode usar, copiar, modificar e compartilhar, mantendo o aviso de autoria. É fornecido sem garantia."/></TextBlock>
+            </DockPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- apoie -->
+        <Border x:Name="cartaoApoie" Style="{StaticResource Cartao}">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Margin="20,0,0,0" VerticalAlignment="Top">
+              <Border x:Name="qrPix" Background="White" CornerRadius="10" Padding="10" Width="196" Height="196" BorderBrush="{DynamicResource Borda}" BorderThickness="1"/>
+              <TextBlock Text="Aponte a câmera do app do banco" Style="{StaticResource Suave}" FontSize="12" HorizontalAlignment="Center" Margin="0,6,0,0"/>
+            </StackPanel>
+            <StackPanel>
+              <StackPanel Orientation="Horizontal">
+                <Path Width="20" Height="18" Stretch="Uniform" Fill="#E0245E" VerticalAlignment="Center" Margin="0,2,10,0"
+                      Data="M12,21 C12,21 3,14.6 3,8.6 C3,5.6 5.4,3.5 8,3.5 C9.8,3.5 11.2,4.5 12,6 C12.8,4.5 14.2,3.5 16,3.5 C18.6,3.5 21,5.6 21,8.6 C21,14.6 12,21 12,21 Z"/>
+                <TextBlock Text="Apoie este projeto" Style="{StaticResource Titulo}" VerticalAlignment="Center"/>
+              </StackPanel>
+              <TextBlock TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="21" Foreground="{DynamicResource Texto}"
+                         Text="O PJe-Calc Backup é gratuito e continuará sendo. Se ele economizou o seu tempo, você pode apoiar o desenvolvimento com um PIX de qualquer valor. Obrigado!"/>
+              <TextBlock Text="Chave PIX (aleatória)" FontWeight="SemiBold" Margin="0,14,0,6"/>
+              <TextBox x:Name="txtChavePix" Style="{StaticResource CaixaTexto}" IsReadOnly="True" FontFamily="Consolas" FontSize="13"/>
+              <StackPanel Orientation="Horizontal" Margin="0,10,0,0">
+                <Button x:Name="btnCopiarChave" Content="Copiar chave PIX" Style="{StaticResource BotaoPrimario}" Margin="0,0,8,0"/>
+                <Button x:Name="btnCopiarPix" Content="Copiar &quot;Pix Copia e Cola&quot;" Style="{StaticResource BotaoBase}"/>
+              </StackPanel>
+              <TextBlock x:Name="txtPixCopiado" Margin="2,8,0,0" Foreground="{DynamicResource Ok}" FontWeight="SemiBold" Visibility="Collapsed"/>
+              <TextBlock Style="{StaticResource Suave}" TextWrapping="Wrap" Margin="0,10,0,0" FontSize="12"
+                         Text="No app do banco: Pix → Pagar com chave (cole a chave) ou Pix Copia e Cola. O nome do recebedor aparece antes de você confirmar."/>
+            </StackPanel>
+          </DockPanel>
         </Border>
       </StackPanel>
     </ScrollViewer>
@@ -868,8 +1043,18 @@
     <!-- ========================================================= rodapé -->
     <Border Grid.Row="4" BorderBrush="{DynamicResource Borda}" BorderThickness="0,1,0,0" Background="{DynamicResource Rodape}" Padding="24,9">
       <DockPanel>
-        <Button x:Name="lnkGithub" DockPanel.Dock="Right" Content="Código-fonte e ajuda" Style="{StaticResource BotaoLink}"/>
-        <TextBlock x:Name="txtRodape" Style="{StaticResource Suave}" FontSize="12" Text="Projeto independente e não oficial. Tudo roda só neste computador."/>
+        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+          <Button x:Name="lnkSobre" Content="Sobre" Style="{StaticResource BotaoLink}" Margin="0,0,18,0"/>
+          <Button x:Name="lnkApoiar" Style="{StaticResource BotaoLink}" Margin="0,0,18,0" AutomationProperties.Name="Apoiar">
+            <StackPanel Orientation="Horizontal">
+              <Path Width="13" Height="12" Stretch="Uniform" Fill="#E0245E" VerticalAlignment="Center" Margin="0,1,6,0"
+                    Data="M12,21 C12,21 3,14.6 3,8.6 C3,5.6 5.4,3.5 8,3.5 C9.8,3.5 11.2,4.5 12,6 C12.8,4.5 14.2,3.5 16,3.5 C18.6,3.5 21,5.6 21,8.6 C21,14.6 12,21 12,21 Z"/>
+              <TextBlock Text="Apoiar"/>
+            </StackPanel>
+          </Button>
+          <Button x:Name="lnkGithub" Content="Código-fonte e ajuda" Style="{StaticResource BotaoLink}"/>
+        </StackPanel>
+        <TextBlock x:Name="txtRodape" Style="{StaticResource Suave}" FontSize="12" VerticalAlignment="Center" Text="Projeto independente e não oficial. Tudo roda só neste computador."/>
       </DockPanel>
     </Border>
   </Grid>

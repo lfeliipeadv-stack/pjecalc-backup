@@ -40,6 +40,7 @@ namespace PjeCalcBackup
                     case "restauracao": return "Restauração de .PJC";
                     case "migracao": return "Migração entre versões";
                     case "restauracao-banco": return "Restauração do banco";
+                    case "arquivo": return "Arquivo salvo";
                     default: return "Backup";
                 }
             }

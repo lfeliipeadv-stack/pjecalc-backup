@@ -9,14 +9,25 @@ Ele abre o PJeCalcBackup-Console.exe, que tem menus interativos:
   3  Migrar cálculos entre versões
   4  Restaurar o banco completo (.zip)
   5  Histórico de backups
-  6  Configurações
+  6  Buscar um cálculo nos backups (por nome ou nº do processo)
+  7  Planilha dos cálculos (Excel)
+  8  Limpar backups antigos (vão para a Lixeira)
+  9  Configurações: pasta, sons, lembrete, limpeza, backup automático e atualização
 
 Use as setas, Enter, Espaço (marcar) e Esc (voltar).
+
+Atalho: arraste arquivos .PJC (ou uma pasta de backup) sobre o backup-calculos.bat
+para restaurá-los. Arraste o .zip de um backup do banco para restaurar o banco.
 
 O .bat procura o PJeCalcBackup-Console.exe na mesma pasta dele ou na pasta
 onde o programa é instalado (%LOCALAPPDATA%\Programs\PJe-Calc Backup).
 
-Backup automático, sem perguntas (para agendar no Windows):
+Backup automático: ligue em Configurações → Backup automático (aqui ou no
+programa com janela). Ele cria a tarefa "PJe-Calc Backup automático" no
+Agendador de Tarefas do Windows.
+
+Backup sem perguntas, pela linha de comando:
   PJeCalcBackup-Console.exe --backup [--destino "pasta"] [--versoes 2.16.0,2.14.0]
-                            [--sem-pjc] [--sem-banco] [--nao-reabrir]
-  Código de saída: 0 = ok, 1 = houve falhas.
+                            [--pasta "C:\pjecalc-..."] [--sem-pjc] [--sem-banco]
+                            [--nao-reabrir] [--agendado] [--limpar]
+  Código de saída: 0 = ok, 1 = houve falhas.  Detalhes: --ajuda

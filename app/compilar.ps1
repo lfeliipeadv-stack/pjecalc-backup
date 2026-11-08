@@ -20,7 +20,7 @@ $refs = @(
     "$wpf\PresentationFramework.dll", "$wpf\PresentationCore.dll", "$wpf\WindowsBase.dll",
     "$fw\System.Xaml.dll", "$fw\System.Windows.Forms.dll", "$fw\System.Drawing.dll", "$fw\System.Web.Extensions.dll",
     "$fw\System.IO.Compression.dll", "$fw\System.IO.Compression.FileSystem.dll",
-    "$fw\System.Management.dll", "$fw\System.Core.dll", "$fw\System.dll", "$fw\System.Xml.dll"
+    "$fw\System.Management.dll", "$fw\Microsoft.VisualBasic.dll", "$fw\System.Core.dll", "$fw\System.dll", "$fw\System.Xml.dll"
 ) | ForEach-Object { "/reference:`"$_`"" }
 $fontes = Get-ChildItem $src -Filter *.cs | ForEach-Object { "`"$($_.FullName)`"" }
 

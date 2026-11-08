@@ -33,6 +33,16 @@ namespace PjeCalcBackup
         public bool ReabrirPjeCalc { get; set; }
         public int VersaoConfig { get; set; }
 
+        // 1.3: limpeza de backups antigos ("" = desligada, "q10" = manter os últimos 10, "m6" = apagar os com mais de 6 meses)
+        public string Limpeza { get; set; }
+        // 1.3: backup agendado (os dados da tarefa ficam no Agendador de Tarefas do Windows; aqui só as escolhas da tela)
+        public string AgendaFrequencia { get; set; }   // diario | semanal
+        public List<string> AgendaDias { get; set; }   // MON, TUE, ... (semanal)
+        public string AgendaHora { get; set; }         // HH:mm
+        public bool AgendaLimpar { get; set; }
+        // 1.3: cálculos desmarcados no último backup (pasta da instalação → números), para virem desmarcados de novo
+        public Dictionary<string, List<string>> CalculosDesmarcados { get; set; }
+
         private static string Arquivo
         {
             get { return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"PJeCalcBackup\config.json"); }
@@ -49,6 +59,8 @@ namespace PjeCalcBackup
                     if (c.Desmarcadas == null) c.Desmarcadas = new List<string>();
                     if (string.IsNullOrEmpty(c.Destino)) c.Destino = DestinoPadrao();
                     if (c.VersaoConfig < 2) c.AplicarPadroesNovos();
+                    c.CompletarAgenda();
+                    if (c.Paleta < 0 || c.Paleta >= PjeCalcBackup.Tema.Paletas.Length) c.Paleta = 0;
                     return c;
                 }
             }
@@ -59,7 +71,16 @@ namespace PjeCalcBackup
                 PastasExtras = new List<string>(), Desmarcadas = new List<string>(), ExportarPjc = true, CopiarBanco = true
             };
             n.AplicarPadroesNovos();
+            n.CompletarAgenda();
             return n;
+        }
+
+        private void CompletarAgenda()
+        {
+            if (Limpeza == null) Limpeza = "";
+            if (string.IsNullOrEmpty(AgendaFrequencia)) AgendaFrequencia = "semanal";
+            if (AgendaDias == null || AgendaDias.Count == 0) AgendaDias = new List<string> { "FRI" };
+            if (string.IsNullOrEmpty(AgendaHora)) AgendaHora = "18:00";
         }
 
         /// <summary>Valores padrão das opções que surgiram na versão 1.2.</summary>
@@ -231,7 +252,7 @@ namespace PjeCalcBackup
                 HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
                 FontFamily = new FontFamily("Segoe UI Symbol")
             };
-            sim.SetResourceReference(TextBlock.ForegroundProperty, "Superficie");
+            sim.SetResourceReference(TextBlock.ForegroundProperty, chave == "Primaria" ? "SobrePrimaria" : "Superficie");
             circulo.Children.Add(sim);
             DockPanel.SetDock(circulo, Dock.Left);
             corpo.Children.Add(circulo);

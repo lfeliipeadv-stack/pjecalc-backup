@@ -24,8 +24,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("PJe-Calc Backup")]
 [assembly: AssemblyProduct("PJe-Calc Backup")]
 [assembly: AssemblyDescription("Backup, restauração e migração dos cálculos do PJe-Calc Cidadão (projeto independente, não oficial)")]
-[assembly: AssemblyVersion("1.2.0.0")]
-[assembly: AssemblyFileVersion("1.2.0.0")]
+[assembly: AssemblyVersion("1.3.0.0")]
+[assembly: AssemblyFileVersion("1.3.0.0")]
 
 namespace PjeCalcBackup
 {
@@ -108,10 +108,16 @@ namespace PjeCalcBackup
             ConfigurarConfiguracoes();
 
             A<Button>("lnkGithub").Click += (s, e) => Abrir(Atualizacao.UrlProjeto);
+            A<TextBlock>("txtRodape").Text = "Projeto independente e não oficial. Tudo roda só neste computador.   ·   Versão " + Atualizacao.Atual;
+            A<Button>("lnkSobre").Click += (s, e) => MostrarCartao("cartaoSobre");
+            A<Button>("lnkApoiar").Click += (s, e) => MostrarCartao("cartaoApoie");
+            ConfigurarApoio();
             A<Button>("btnFecharLembrete").Click += (s, e) => A<Border>("avisoLembrete").Visibility = Visibility.Collapsed;
             A<Button>("btnLembreteBackup").Click += (s, e) => { A<Border>("avisoLembrete").Visibility = Visibility.Collapsed; A<RadioButton>("abaBackup").IsChecked = true; };
             A<Button>("btnFecharAtualizacao").Click += (s, e) => A<Border>("avisoAtualizacao").Visibility = Visibility.Collapsed;
-            A<Button>("btnBaixarAtualizacao").Click += (s, e) => Abrir(novidade != null ? novidade.Url : Atualizacao.UrlProjeto + "/releases/latest");
+            A<Button>("btnBaixarAtualizacao").Click += (s, e) => AtualizarAgora();
+            A<Button>("btnNovidades").Click += (s, e) => Abrir(novidade != null ? novidade.Url : Atualizacao.UrlProjeto + "/releases/latest");
+            Atualizacao.LimparAntigos();
 
             SystemEvents.UserPreferenceChanged += (s, e) =>
             {
@@ -136,8 +142,70 @@ namespace PjeCalcBackup
             {
                 ProcurarInstalacoes();
                 VerificarLembrete();
-                VerificarAtualizacao(false);
+                if (Environment.GetCommandLineArgs().Contains("--atualizado"))
+                {
+                    A<TextBlock>("txtVersao").Text = "Versão instalada: " + Atualizacao.Atual + " · atualizado agora";
+                    Avisar(TipoDialogo.Sucesso, "Atualizado", "O PJe-Calc Backup foi atualizado para a versão " + Atualizacao.Atual + ".");
+                }
+                else VerificarAtualizacao(false);
             };
+        }
+
+        // ============================================================ sobre e apoio
+
+        /// <summary>Abre a engrenagem e rola até o cartão (Sobre ou Apoie).</summary>
+        private void MostrarCartao(string nome)
+        {
+            A<RadioButton>("abaConfig").IsChecked = true;
+            janela.Dispatcher.BeginInvoke(new Action(() =>
+            {
+                var c = A<FrameworkElement>(nome);
+                var sv = A<ScrollViewer>("painelConfig");
+                var p = c.TransformToAncestor(sv).Transform(new Point(0, 0));
+                sv.ScrollToVerticalOffset(sv.VerticalOffset + p.Y - 8);
+            }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        private void ConfigurarApoio()
+        {
+            A<TextBox>("txtChavePix").Text = Pix.Chave;
+            A<Button>("btnLicenca").Click += (s, e) => Abrir(Atualizacao.UrlProjeto + "/blob/main/LICENSE");
+            var aviso = A<TextBlock>("txtPixCopiado");
+            var tempo = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(4) };
+            tempo.Tick += (s, e) => { tempo.Stop(); aviso.Visibility = Visibility.Collapsed; };
+            Action<string, string> copiar = (texto, msg) =>
+            {
+                try { Clipboard.SetText(texto); aviso.Text = "✓  " + msg; }
+                catch { aviso.Text = "Não consegui copiar. Selecione o texto e use Ctrl+C."; }
+                aviso.Visibility = Visibility.Visible; tempo.Stop(); tempo.Start();
+            };
+            A<Button>("btnCopiarChave").Click += (s, e) => copiar(Pix.Chave, "Chave PIX copiada. Cole no app do banco em Pix → Pagar com chave.");
+            A<Button>("btnCopiarPix").Click += (s, e) => copiar(Pix.CopiaECola(), "Código \"Pix Copia e Cola\" copiado. Cole no app do banco em Pix Copia e Cola.");
+
+            // QR Code desenhado com quadradinhos (sempre preto no branco, também no tema escuro)
+            try
+            {
+                var m = QrCode.Gerar(Pix.CopiaECola());
+                int n = m.GetLength(0), margem = 2;
+                var g = new StreamGeometry();
+                using (var ctx = g.Open())
+                    for (int y = 0; y < n; y++)
+                        for (int x = 0; x < n; x++)
+                            if (m[y, x])
+                            {
+                                ctx.BeginFigure(new Point(x + margem, y + margem), true, true);
+                                ctx.PolyLineTo(new[] { new Point(x + margem + 1, y + margem), new Point(x + margem + 1, y + margem + 1), new Point(x + margem, y + margem + 1) }, false, false);
+                            }
+                g.Freeze();
+                var area = new System.Windows.Shapes.Rectangle { Width = n + 2 * margem, Height = n + 2 * margem, Fill = Brushes.White };
+                var caminho = new System.Windows.Shapes.Path { Data = g, Fill = Brushes.Black, SnapsToDevicePixels = true };
+                var tela = new Grid { Width = n + 2 * margem, Height = n + 2 * margem };
+                tela.Children.Add(area); tela.Children.Add(caminho);
+                RenderOptions.SetEdgeMode(tela, EdgeMode.Aliased);
+                A<Border>("qrPix").Child = new Viewbox { Child = tela, Stretch = Stretch.Uniform };
+                A<Border>("qrPix").ToolTip = "QR Code PIX — chave " + Pix.Chave;
+            }
+            catch { A<Border>("qrPix").Visibility = Visibility.Collapsed; }
         }
 
         private static void Abrir(string alvo)
@@ -366,8 +434,27 @@ namespace PjeCalcBackup
         {
             var tb = A<TextBox>(caixa);
             var v = CollectionViewSource.GetDefaultView(lista);
-            v.Filter = o => ((CalcItemVM)o).Corresponde(tb.Text);
+            // cálculos de uma versão recolhida ficam ocultos, a não ser durante uma busca no filtro
+            v.Filter = o =>
+            {
+                var c = (CalcItemVM)o;
+                if (!c.Corresponde(tb.Text)) return false;
+                return c.EhGrupo || c.Grupo == null || c.Grupo.Expandido || !string.IsNullOrWhiteSpace(tb.Text);
+            };
             tb.TextChanged += (s, e) => v.Refresh();
+        }
+
+        /// <summary>Botão "Mostrar/Ocultar cálculos" dos cabeçalhos de versão.</summary>
+        private void LigarRecolher(string lista, ObservableCollection<CalcItemVM> itens)
+        {
+            A<ItemsControl>(lista).AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((s, e) =>
+            {
+                var b = e.OriginalSource as Button;
+                var g = b == null ? null : b.Tag as CalcItemVM;
+                if (g == null || !g.EhGrupo) return;
+                g.Expandido = !g.Expandido;
+                CollectionViewSource.GetDefaultView(itens).Refresh();
+            }));
         }
 
         private static void Marcar(IEnumerable<CalcItemVM> lista, bool valor)
@@ -395,10 +482,16 @@ namespace PjeCalcBackup
             asBk = new Assistente(A<StackPanel>("passosBackup"), new[] { "Versões", "Cálculos", "Destino", "Backup" }, i => bk[i], bk,
                 A<Button>("bkVoltar"), A<Button>("bkAvancar"), A<Button>("bkExtra"), "Concluir ✓", "Novo backup");
             LigarFiltro("txtFiltroBk", vm.CalculosBackup);
+            LigarRecolher("lstCalcBk", vm.CalculosBackup);
             A<Button>("btnBkTodos").Click += (s, e) => Marcar(vm.CalculosBackup, true);
             A<Button>("btnBkNenhum").Click += (s, e) => Marcar(vm.CalculosBackup, false);
+            A<Button>("btnBk7").Click += (s, e) => MarcarRecentes(7);
+            A<Button>("btnBk30").Click += (s, e) => MarcarRecentes(30);
+            A<Button>("btnBk90").Click += (s, e) => MarcarRecentes(90);
+            A<ComboBox>("cmbOrdemBk").SelectionChanged += (s, e) => OrdenarCalculosBackup();
             A<Button>("btnProcurar").Click += (s, e) => ProcurarInstalacoes();
             A<Button>("btnAdicionar").Click += (s, e) => AdicionarPasta();
+            A<Button>("btnPlanilha").Click += (s, e) => SalvarPlanilha();
             A<Button>("btnEscolher").Click += (s, e) => { var p = SeletorPasta.Escolher(janela, "Escolha onde salvar os backups", vm.Destino); if (p != null) vm.Destino = p; };
             A<Button>("btnAbrirPasta").Click += (s, e) => AbrirPasta(vm.Destino);
 
@@ -459,20 +552,81 @@ namespace PjeCalcBackup
                 }
                 NaTela(() =>
                 {
-                    int total = 0;
+                    int total = 0, lembrados = 0;
                     foreach (var kv in res)
                     {
-                        var g = new CalcItemVM { EhGrupo = true, Titulo = kv.Key.Titulo + "  —  " + kv.Value.Count + " cálculo(s)", PastaInstalacao = kv.Key.Pasta };
-                        vm.CalculosBackup.Add(g);
+                        // começa recolhido; com uma versão só, já vem aberto
+                        var g = new CalcItemVM { EhGrupo = true, Titulo = kv.Key.Titulo, PastaInstalacao = kv.Key.Pasta, Expandido = res.Count == 1 };
+                        List<string> desm;
+                        var desmarcados = config.CalculosDesmarcados != null && config.CalculosDesmarcados.TryGetValue(kv.Key.Pasta, out desm)
+                            ? new HashSet<string>(desm) : new HashSet<string>();
                         foreach (var c in kv.Value)
                         {
                             var it = ItemDe(c, kv.Key.Pasta, g, null);
-                            g.Filhos.Add(it); vm.CalculosBackup.Add(it); total++;
+                            if (desmarcados.Contains(c.Numero)) { it.Selecionado = false; lembrados++; }
+                            g.Filhos.Add(it); total++;
                         }
+                        g.SincronizarGrupo();
+                        vm.CalculosBackup.Add(g);
+                        foreach (var it in g.Filhos) vm.CalculosBackup.Add(it);
                     }
-                    st.Text = total + " cálculo(s) em " + res.Count + " versão(ões)." + (erros.Count > 0 ? "  Não consegui ler: " + string.Join("; ", erros) : "");
+                    OrdenarCalculosBackup();
+                    st.Text = total + " cálculo(s) em " + res.Count + " versão(ões)." +
+                              (lembrados > 0 ? "  " + lembrados + " vieram desmarcados, como no último backup." : "") +
+                              (erros.Count > 0 ? "  Não consegui ler: " + string.Join("; ", erros) : "");
                 });
             });
+        }
+
+        /// <summary>Reordena os cálculos dentro de cada versão (número, nome ou mais recentes).</summary>
+        private void OrdenarCalculosBackup()
+        {
+            int modo = A<ComboBox>("cmbOrdemBk").SelectedIndex;
+            var grupos = vm.CalculosBackup.Where(x => x.EhGrupo).ToList();
+            if (grupos.Count == 0) return;
+            vm.CalculosBackup.Clear();
+            foreach (var g in grupos)
+            {
+                IEnumerable<CalcItemVM> f = g.Filhos;
+                int n;
+                if (modo == 1) f = f.OrderBy(x => x.Info.Reclamante ?? "", StringComparer.CurrentCultureIgnoreCase);
+                else if (modo == 2) f = f.OrderByDescending(x => x.Info.Criacao ?? "").ThenByDescending(x => int.TryParse(x.Numero, out n) ? n : 0);
+                else f = f.OrderBy(x => int.TryParse(x.Numero, out n) ? n : int.MaxValue);
+                g.Filhos = f.ToList();
+                vm.CalculosBackup.Add(g);
+                foreach (var it in g.Filhos) vm.CalculosBackup.Add(it);
+            }
+        }
+
+        /// <summary>Marca só os cálculos criados nos últimos N dias (e abre as versões que têm algum).</summary>
+        private void MarcarRecentes(int dias)
+        {
+            string limite = DateTime.Today.AddDays(-dias).ToString("yyyy-MM-dd");
+            int n = 0;
+            foreach (var g in vm.CalculosBackup.Where(x => x.EhGrupo).ToList())
+            {
+                foreach (var it in g.Filhos)
+                {
+                    bool recente = string.CompareOrdinal(it.Info.Criacao ?? "", limite) >= 0;
+                    it.Selecionado = recente;
+                    if (recente) n++;
+                }
+                if (g.Filhos.Any(x => x.Selecionado)) g.Expandido = true;
+            }
+            CollectionViewSource.GetDefaultView(vm.CalculosBackup).Refresh();
+            A<TextBlock>("txtStatusBk").Text = n == 0 ? "Nenhum cálculo foi criado nos últimos " + dias + " dias." : n + " cálculo(s) criados nos últimos " + dias + " dias ficaram marcados; os demais foram desmarcados.";
+        }
+
+        /// <summary>Guarda, por versão, os cálculos desmarcados, para virem desmarcados no próximo backup.</summary>
+        private void LembrarDesmarcados()
+        {
+            if (config.CalculosDesmarcados == null) config.CalculosDesmarcados = new Dictionary<string, List<string>>();
+            foreach (var g in vm.CalculosBackup.Where(x => x.EhGrupo))
+            {
+                var d = g.Filhos.Where(f => !f.Selecionado).Select(f => f.Numero).ToList();
+                if (d.Count == 0) config.CalculosDesmarcados.Remove(g.PastaInstalacao);
+                else config.CalculosDesmarcados[g.PastaInstalacao] = d;
+            }
         }
 
         private void IniciarBackup()
@@ -482,6 +636,7 @@ namespace PjeCalcBackup
             foreach (var g in vm.CalculosBackup.Where(x => x.EhGrupo))
                 if (!g.Filhos.All(f => f.Selecionado))
                     op.Selecao[g.PastaInstalacao] = new HashSet<string>(g.Filhos.Where(f => f.Selecionado).Select(f => f.Numero));
+            LembrarDesmarcados();
             SalvarConfig();
 
             PrepararExecucao(asBk, vm.LogBackup, "rolagemBk", "barraBk", "txtEtapaBk", "txtTituloBk", "Fazendo backup…");
@@ -493,6 +648,218 @@ namespace PjeCalcBackup
                 Finalizar(ok, ok ? "Backup concluído" : "Backup concluído com falhas",
                     res.Exportados + " cálculo(s) exportado(s)" + (conf != "" ? " (" + conf + ")" : "") + ", " + res.Bancos + " banco(s) copiado(s)" +
                     (res.Falhas > 0 ? ", " + res.Falhas + " falha(s)" : "") + ".", res);
+                if (ok && !string.IsNullOrEmpty(config.Limpeza)) NaTela(() => OferecerLimpeza(false));
+            });
+        }
+
+        // ============================================================ planilha
+
+        private void SalvarPlanilha()
+        {
+            var sel = vm.Instalacoes.Where(x => x.Selecionada && x.Selecionavel).ToList();
+            if (sel.Count == 0) { Avisar(TipoDialogo.Info, "Nenhuma versão marcada", "Marque as versões do PJe-Calc que devem entrar na planilha."); return; }
+            var d = new Microsoft.Win32.SaveFileDialog
+            {
+                Title = "Salvar a planilha dos cálculos", Filter = "Planilha do Excel (*.xlsx)|*.xlsx",
+                FileName = "Cálculos PJe-Calc " + DateTime.Now.ToString("yyyy-MM-dd") + ".xlsx",
+                InitialDirectory = Directory.Exists(config.Destino) ? config.Destino : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments)
+            };
+            if (d.ShowDialog(janela) != true) return;
+            string arq = d.FileName;
+            var botao = A<Button>("btnPlanilha");
+            botao.IsEnabled = false; botao.Content = "Gerando…";
+            Task.Factory.StartNew(() =>
+            {
+                var linhas = new List<Planilha.Linha>(); var erros = new List<string>(); Exception erro = null;
+                try
+                {
+                    foreach (var i in sel)
+                    {
+                        try { linhas.AddRange(CalculosDe(i.Inst).Select(c => new Planilha.Linha { Versao = i.Inst.Versao, C = c })); }
+                        catch (Exception ex) { erros.Add(i.Titulo + ": " + ex.Message); }
+                    }
+                    Planilha.Salvar(arq, linhas);
+                }
+                catch (Exception ex) { erro = ex; }
+                NaTela(() =>
+                {
+                    botao.IsEnabled = true; botao.Content = "Planilha (Excel)…";
+                    if (erro != null) { Avisar(TipoDialogo.Erro, "Não consegui salvar a planilha", erro.Message); return; }
+                    if (Perguntar(TipoDialogo.Sucesso, "Planilha salva",
+                        linhas.Count + " cálculo(s) de " + (sel.Count - erros.Count) + " versão(ões) em:\n" + arq +
+                        (erros.Count > 0 ? "\n\nNão consegui ler: " + string.Join("; ", erros) : "") +
+                        "\n\nA planilha tem nomes das partes: guarde-a em local seguro.", "Abrir a planilha", "Fechar"))
+                        Abrir(arq);
+                });
+            });
+        }
+
+        // ============================================================ limpeza de backups antigos
+
+        private void ConfigurarLimpeza()
+        {
+            var cmb = A<ComboBox>("cmbLimpeza");
+            foreach (var c in Limpeza.Codigos)
+            {
+                var it = new ComboBoxItem { Content = Limpeza.Descrever(c), Tag = c };
+                cmb.Items.Add(it);
+                if (c == (config.Limpeza ?? "")) cmb.SelectedItem = it;
+            }
+            if (cmb.SelectedItem == null) cmb.SelectedIndex = 0;
+            cmb.SelectionChanged += (s, e) =>
+            {
+                var it = cmb.SelectedItem as ComboBoxItem;
+                if (it == null) return;
+                config.Limpeza = Convert.ToString(it.Tag); config.Salvar();
+                AtualizarEstadoAgenda();
+            };
+        }
+
+        /// <summary>Mostra quais backups a regra manda apagar e, se o usuário confirmar, move para a Lixeira.</summary>
+        private void OferecerLimpeza(bool manual)
+        {
+            string codigo = config.Limpeza;
+            if (string.IsNullOrEmpty(codigo))
+            {
+                if (manual && Perguntar(TipoDialogo.Info, "Limpeza desligada", "Escolha uma regra (por exemplo, \"Manter só os últimos 10 backups\") em Configurações → Backups.", "Abrir Configurações", "Fechar"))
+                    A<RadioButton>("abaConfig").IsChecked = true;
+                return;
+            }
+            string destino = config.Destino;
+            Task.Factory.StartNew(() =>
+            {
+                var cand = Limpeza.Candidatos(destino, codigo);
+                long total = cand.Sum(c => Limpeza.Tamanho(c.PastaOperacao));
+                bool lixeira = Limpeza.TemLixeira(destino);
+                NaTela(() =>
+                {
+                    if (cand.Count == 0)
+                    {
+                        if (manual) Avisar(TipoDialogo.Sucesso, "Nada para limpar", "Nenhum backup se encaixa na regra \"" + Limpeza.Descrever(codigo) + "\".");
+                        return;
+                    }
+                    var nomes = cand.OrderBy(c => c.Data).Take(8).Select(c => "•  " + c.Data.ToString("dd/MM/yyyy HH:mm") + "  (" + c.Calculos + " cálculo(s))").ToList();
+                    if (cand.Count > 8) nomes.Add("•  … e mais " + (cand.Count - 8));
+                    string msg = "Regra: " + Limpeza.Descrever(codigo) + ".\n\n" + cand.Count + " backup(s) antigo(s), " + Limpeza.TextoTamanho(total) + " no total:\n" +
+                                 string.Join("\n", nomes) + "\n\n" +
+                                 (lixeira ? "Eles vão para a Lixeira do Windows, de onde dá para recuperar."
+                                          : "ATENÇÃO: a pasta de backups fica num pendrive, HD externo ou rede, que não têm Lixeira. Os backups serão apagados DEFINITIVAMENTE.");
+                    if (!Perguntar(lixeira ? TipoDialogo.Pergunta : TipoDialogo.Aviso, "Limpar backups antigos?", msg,
+                        lixeira ? "Mover para a Lixeira" : "Apagar definitivamente", "Agora não")) return;
+                    var erros = new List<string>();
+                    int n = Limpeza.MoverParaLixeira(cand, erros.Add);
+                    CarregarHistorico();
+                    if (erros.Count > 0) Avisar(TipoDialogo.Aviso, "Limpeza parcial", n + " backup(s) removido(s). Não consegui remover:\n" + string.Join("\n", erros.Take(5)));
+                    else Avisar(TipoDialogo.Sucesso, "Limpeza concluída", n + " backup(s) antigo(s) " + (lixeira ? "movido(s) para a Lixeira" : "apagado(s)") + " (" + Limpeza.TextoTamanho(total) + ").");
+                });
+            });
+        }
+
+        // ============================================================ backup agendado
+
+        private List<CheckBox> diasAgenda = new List<CheckBox>();
+
+        private void ConfigurarAgenda()
+        {
+            var painel = A<Panel>("agDias");
+            for (int i = 0; i < Agendador.Dias.Length; i++)
+            {
+                var c = new CheckBox { Content = Agendador.DiasPt[i], Tag = Agendador.Dias[i], Margin = new Thickness(0, 0, 16, 4), IsChecked = config.AgendaDias.Contains(Agendador.Dias[i]) };
+                diasAgenda.Add(c); painel.Children.Add(c);
+            }
+            var diario = A<RadioButton>("agDiario"); var semanal = A<RadioButton>("agSemanal");
+            (config.AgendaFrequencia == "diario" ? diario : semanal).IsChecked = true;
+            painel.IsEnabled = semanal.IsChecked == true;
+            semanal.Checked += (s, e) => painel.IsEnabled = true;
+            diario.Checked += (s, e) => painel.IsEnabled = false;
+            A<TextBox>("txtAgHora").Text = config.AgendaHora;
+            A<CheckBox>("chkAgLimpar").IsChecked = config.AgendaLimpar;
+
+            A<Button>("btnAgSalvar").Click += (s, e) =>
+            {
+                string hora = (A<TextBox>("txtAgHora").Text ?? "").Trim();
+                TimeSpan h;
+                if (hora.Length == 4 && hora[1] == ':') hora = "0" + hora;
+                if (!TimeSpan.TryParseExact(hora, "hh\\:mm", System.Globalization.CultureInfo.InvariantCulture, out h))
+                { Avisar(TipoDialogo.Info, "Horário inválido", "Digite o horário no formato 18:00."); return; }
+                var dias = diasAgenda.Where(c => c.IsChecked == true).Select(c => Convert.ToString(c.Tag)).ToList();
+                string freq = diario.IsChecked == true ? "diario" : "semanal";
+                if (freq == "semanal" && dias.Count == 0) { Avisar(TipoDialogo.Info, "Escolha os dias", "Marque pelo menos um dia da semana."); return; }
+                bool limpar = A<CheckBox>("chkAgLimpar").IsChecked == true;
+                if (limpar && string.IsNullOrEmpty(config.Limpeza))
+                { Avisar(TipoDialogo.Info, "Escolha a regra de limpeza", "Para limpar depois do backup automático, escolha antes uma regra em \"Limpeza de backups antigos\"."); return; }
+                if (limpar && !Limpeza.TemLixeira(config.Destino))
+                { Avisar(TipoDialogo.Aviso, "Sem Lixeira nessa pasta", "A pasta de backups fica num pendrive, HD externo ou rede, onde não existe Lixeira. A limpeza automática só funciona em disco interno."); return; }
+                try
+                {
+                    SalvarConfig();
+                    Agendador.Criar(freq, dias, hora, limpar);
+                    config.AgendaFrequencia = freq; config.AgendaDias = dias.Count > 0 ? dias : config.AgendaDias; config.AgendaHora = hora; config.AgendaLimpar = limpar;
+                    config.Salvar();
+                    Avisar(TipoDialogo.Sucesso, "Backup automático ligado", "O backup vai rodar " + Agendador.Descrever(freq, dias, hora) + ", na pasta:\n" + config.Destino);
+                }
+                catch (Exception ex) { Avisar(TipoDialogo.Erro, "Não consegui agendar", ex.Message); }
+                AtualizarEstadoAgenda();
+            };
+            A<Button>("btnAgRemover").Click += (s, e) =>
+            {
+                try { Agendador.Remover(); } catch (Exception ex) { Avisar(TipoDialogo.Erro, "Não consegui desligar", ex.Message); }
+                AtualizarEstadoAgenda();
+            };
+            AtualizarEstadoAgenda();
+        }
+
+        private void AtualizarEstadoAgenda()
+        {
+            var txt = A<TextBlock>("txtAgEstado");
+            Task.Factory.StartNew(() =>
+            {
+                var e = Agendador.Consultar();
+                NaTela(() =>
+                {
+                    A<Button>("btnAgRemover").Visibility = e.Existe ? Visibility.Visible : Visibility.Collapsed;
+                    if (!e.Existe) { txt.Text = "Desligado."; txt.Foreground = Tema.Recurso("TextoSuave"); return; }
+                    string t = "Ligado: " + Agendador.Descrever(config.AgendaFrequencia, config.AgendaDias, config.AgendaHora) + ".";
+                    if (!string.IsNullOrEmpty(e.Proxima) && !e.Proxima.StartsWith("N/A")) t += "  Próximo: " + e.Proxima + ".";
+                    if (!string.IsNullOrEmpty(e.Resultado) && e.Resultado != "ainda não rodou") t += "  Último: " + e.Ultima + " (" + e.Resultado + ").";
+                    if (!e.ExeExiste) t = "A tarefa existe, mas aponta para um programa que não está mais lá (" + e.Comando + "). Clique em \"Ligar / salvar\" para corrigir.";
+                    txt.Text = t;
+                    txt.Foreground = Tema.Recurso(e.ExeExiste ? "Ok" : "Aviso");
+                });
+            });
+        }
+
+        // ============================================================ atualização com um clique
+
+        private void AtualizarAgora()
+        {
+            if (novidade == null) { Abrir(Atualizacao.UrlProjeto + "/releases/latest"); return; }
+            if (executando) { Avisar(TipoDialogo.Info, "Aguarde", "Termine a operação em andamento antes de atualizar."); return; }
+            if (!Perguntar(TipoDialogo.Pergunta, "Atualizar para a versão " + novidade.Versao + "?",
+                "O programa baixa a versão nova do GitHub, confere o SHA-256 de cada arquivo e se reinicia. Suas configurações e backups não mudam.",
+                "Atualizar", "Agora não")) return;
+            var n = novidade;
+            var botoes = new[] { A<Button>("btnBaixarAtualizacao"), A<Button>("btnAtualizarAgora") };
+            foreach (var b in botoes) b.IsEnabled = false;
+            Task.Factory.StartNew(() =>
+            {
+                string novo = null; Exception erro = null;
+                try { novo = Atualizacao.Instalar(n, t => NaTela(() => { A<TextBlock>("txtAtualizacao").Text = t; A<TextBlock>("txtVersao").Text = t; })); }
+                catch (Exception ex) { erro = ex; }
+                NaTela(() =>
+                {
+                    foreach (var b in botoes) b.IsEnabled = true;
+                    if (erro != null)
+                    {
+                        A<TextBlock>("txtAtualizacao").Text = "Não consegui atualizar.";
+                        if (Perguntar(TipoDialogo.Erro, "Não consegui atualizar", erro.Message + "\n\nVocê pode baixar a versão nova pela página do projeto.", "Abrir a página", "Fechar"))
+                            Abrir(n.Url);
+                        return;
+                    }
+                    SalvarConfig();
+                    try { Process.Start(novo, "--atualizado"); } catch { }
+                    Application.Current.Shutdown();
+                });
             });
         }
 
@@ -513,6 +880,19 @@ namespace PjeCalcBackup
             A<Button>("btnArquivosPjc").Click += (s, e) => EscolherArquivosPjc();
             A<Button>("btnPastaPjc").Click += (s, e) => EscolherPastaPjc();
             A<Button>("btnLimparPjc").Click += (s, e) => { vm.ArquivosPjc.Clear(); AtualizarResumoPjc(); };
+
+            // listas agrupadas por versão: os itens de um grupo recolhido ficam ocultos
+            var vArq = CollectionViewSource.GetDefaultView(vm.ArquivosPjc);
+            vArq.Filter = o => { var a = (ArquivoPjcVM)o; return a.EhGrupo || a.Grupo == null || a.Grupo.Expandido; };
+            A<ItemsControl>("lstArquivosPjc").AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((s, e) =>
+            {
+                var b = e.OriginalSource as Button;
+                var g = b == null ? null : b.Tag as ArquivoPjcVM;
+                if (g == null || !g.EhGrupo) return;
+                g.Expandido = !g.Expandido; vArq.Refresh();
+            }));
+            CollectionViewSource.GetDefaultView(vm.CalculosRestaurar).Filter = o => { var c = (CalcItemVM)o; return c.EhGrupo || c.Grupo == null || c.Grupo.Expandido; };
+            LigarRecolher("lstRevisaoRs", vm.CalculosRestaurar);
             A<Button>("btnZipBanco").Click += (s, e) => EscolherZip();
             A<ComboBox>("cmbDestinoRs").SelectionChanged += (s, e) => { if (asRs.Atual == 2) PrepararRevisaoRestauracao(); };
 
@@ -521,7 +901,7 @@ namespace PjeCalcBackup
                 if (i == 1)
                 {
                     if (RestaurarBancoEscolhido && string.IsNullOrEmpty(zipEscolhido)) { Avisar(TipoDialogo.Info, "Escolha o arquivo", "Escolha o arquivo .zip do backup do banco."); return false; }
-                    if (!RestaurarBancoEscolhido && !vm.ArquivosPjc.Any(a => a.Selecionado)) { Avisar(TipoDialogo.Info, "Nenhum arquivo", "Escolha arquivos .PJC (ou uma pasta de backup) e deixe marcados os que quer restaurar."); return false; }
+                    if (!RestaurarBancoEscolhido && !vm.ArquivosPjc.Any(a => !a.EhGrupo && a.Selecionado)) { Avisar(TipoDialogo.Info, "Nenhum arquivo", "Escolha arquivos .PJC (ou uma pasta de backup) e deixe marcados os que quer restaurar."); return false; }
                 }
                 if (i == 2)
                 {
@@ -543,7 +923,7 @@ namespace PjeCalcBackup
                             "Já salvei, restaurar", new[] { dest.Inst });
                     }
                     if (!NavegadorOk()) return false;
-                    int n = vm.CalculosRestaurar.Count(x => x.Selecionado);
+                    int n = vm.CalculosRestaurar.Count(x => !x.EhGrupo && x.Selecionado);
                     if (n == 0) { Avisar(TipoDialogo.Info, "Nenhum cálculo marcado", "Marque pelo menos um arquivo para restaurar."); return false; }
                     return ConfirmarInicio("Antes de restaurar",
                         n + " arquivo(s) serão importados no " + dest.Titulo + ". Cada um vira um cálculo NOVO. Antes, uma cópia do banco atual será guardada em:\n" + config.Destino,
@@ -559,21 +939,41 @@ namespace PjeCalcBackup
             AtualizarResumoPjc();
         }
 
+        /// <summary>Junta os arquivos novos aos já escolhidos e monta a lista agrupada por versão (recolhida quando há mais de uma).</summary>
         private void AdicionarArquivosPjc(IEnumerable<string> arquivos)
         {
-            var existentes = new HashSet<string>(vm.ArquivosPjc.Select(a => a.Caminho), StringComparer.OrdinalIgnoreCase);
-            foreach (var a in arquivos.OrderBy(x => x))
+            var atuais = vm.ArquivosPjc.Where(a => !a.EhGrupo).ToList();
+            var gruposAntes = vm.ArquivosPjc.Where(a => a.EhGrupo).ToDictionary(g => g.Versao ?? "", g => g.Expandido);
+            var existentes = new HashSet<string>(atuais.Select(a => a.Caminho), StringComparer.OrdinalIgnoreCase);
+            foreach (var a in arquivos)
             {
-                if (existentes.Contains(a)) continue;
+                if (!existentes.Add(a)) continue;
                 long t = 0; try { t = new FileInfo(a).Length; } catch { }
-                vm.ArquivosPjc.Add(new ArquivoPjcVM { Caminho = a, Tamanho = Math.Max(1, t / 1024) + " KB" });
+                atuais.Add(new ArquivoPjcVM { Caminho = a, Tamanho = Math.Max(1, t / 1024) + " KB", Versao = VersaoPorPasta.De(a) });
+            }
+            vm.ArquivosPjc.Clear();
+            var grupos = atuais.GroupBy(a => a.Versao ?? "").OrderByDescending(g => VersaoPorPasta.Ordenavel(g.Key)).ToList();
+            foreach (var g in grupos)
+            {
+                bool aberto;
+                var cab = new ArquivoPjcVM
+                {
+                    EhGrupo = true, Versao = g.Key, Titulo = g.Key == "" ? "Versão não identificada" : "PJe-Calc " + g.Key,
+                    Expandido = grupos.Count == 1 || (gruposAntes.TryGetValue(g.Key, out aberto) && aberto)
+                };
+                vm.ArquivosPjc.Add(cab);
+                foreach (var a in g.OrderBy(x => x.Nome, StringComparer.OrdinalIgnoreCase))
+                {
+                    a.Grupo = cab; cab.Filhos.Add(a); vm.ArquivosPjc.Add(a);
+                }
+                cab.SincronizarGrupo();
             }
             AtualizarResumoPjc();
         }
 
         private void AtualizarResumoPjc()
         {
-            int n = vm.ArquivosPjc.Count;
+            int n = vm.ArquivosPjc.Count(a => !a.EhGrupo);
             A<TextBlock>("txtResumoPjc").Text = n == 0 ? "Escolha arquivos .PJC ou uma pasta de backup (as subpastas entram também)." : n + " arquivo(s). Desmarque os que não quiser restaurar.";
         }
 
@@ -653,7 +1053,7 @@ namespace PjeCalcBackup
             aviso.Visibility = Visibility.Collapsed;
             if (dest == null) return;
             st.Text = "Lendo os arquivos e comparando com os cálculos do " + dest.Titulo + "…";
-            var arquivos = vm.ArquivosPjc.Where(a => a.Selecionado).Select(a => a.Caminho).ToList();
+            var arquivos = vm.ArquivosPjc.Where(a => !a.EhGrupo && a.Selecionado).Select(a => a.Caminho).ToList();
             Task.Factory.StartNew(() =>
             {
                 var infos = new List<CalculoInfo>();
@@ -674,14 +1074,23 @@ namespace PjeCalcBackup
                 NaTela(() =>
                 {
                     int ndup = 0;
-                    foreach (var ci in infos)
+                    var grupos = infos.GroupBy(ci => VersaoPorPasta.De(ci.Arquivo)).OrderByDescending(g => VersaoPorPasta.Ordenavel(g.Key)).ToList();
+                    foreach (var grp in grupos)
                     {
-                        string existe = null;
-                        if (dup != null && dup.TryGetValue(ci.Chave, out existe)) ndup++;
-                        var it = ItemDe(ci, null, null, existe != null ? "Parece já existir (nº " + existe + ")" : null);
-                        it.Detalhe = (it.Detalhe.Length > 0 ? it.Detalhe + "   ·   " : "") + Path.GetFileName(ci.Arquivo);
-                        it.Selecionado = existe == null;
-                        vm.CalculosRestaurar.Add(it);
+                        var cab = new CalcItemVM { EhGrupo = true, Titulo = grp.Key == "" ? "Versão não identificada" : "Arquivos do PJe-Calc " + grp.Key, Expandido = grupos.Count == 1 };
+                        vm.CalculosRestaurar.Add(cab);
+                        foreach (var ci in grp)
+                        {
+                            string existe = null;
+                            if (dup != null && dup.TryGetValue(ci.Chave, out existe)) ndup++;
+                            var it = ItemDe(ci, null, cab, existe != null ? "Parece já existir (nº " + existe + ")" : null);
+                            it.Detalhe = (it.Detalhe.Length > 0 ? it.Detalhe + "   ·   " : "") + Path.GetFileName(ci.Arquivo);
+                            it.Selecionado = existe == null;
+                            cab.Filhos.Add(it);
+                            vm.CalculosRestaurar.Add(it);
+                        }
+                        cab.SincronizarGrupo();
+                        cab.AtualizarResumo();
                     }
                     st.Text = infos.Count + " arquivo(s)" + (ndup > 0 ? " · " + ndup + " parece(m) já existir no " + dest.Titulo + " e vieram desmarcados" : " · nenhum parece já existir no destino") +
                               (ruins.Count > 0 ? " · ilegíveis: " + string.Join(", ", ruins) : "") + (dup == null ? " · não consegui ler o banco de destino para comparar" : "");
@@ -706,7 +1115,7 @@ namespace PjeCalcBackup
                 });
                 return;
             }
-            var arquivos = vm.CalculosRestaurar.Where(x => x.Selecionado).Select(x => x.Arquivo).ToList();
+            var arquivos = vm.CalculosRestaurar.Where(x => !x.EhGrupo && x.Selecionado).Select(x => x.Arquivo).ToList();
             Rodar(() => Backup.Restaurar(dest, arquivos, config.Destino, config.ReabrirPjeCalc, this), res =>
             {
                 bool ok = res.Falhas == 0 && res.Importados > 0;
@@ -813,7 +1222,25 @@ namespace PjeCalcBackup
 
         private void ConfigurarHistorico()
         {
-            A<Button>("btnAtualizarHist").Click += (s, e) => CarregarHistorico();
+            A<Button>("btnAtualizarHist").Click += (s, e) => { indiceBusca = null; CarregarHistorico(); Buscar(); };
+            A<Button>("btnLimparHist").Click += (s, e) => OferecerLimpeza(true);
+            var busca = A<TextBox>("txtBuscaHist");
+            var espera = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(350) };
+            espera.Tick += (s, e) => { espera.Stop(); Buscar(); };
+            busca.TextChanged += (s, e) => { espera.Stop(); espera.Start(); };
+            A<ItemsControl>("lstBusca").AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((s, e) =>
+            {
+                var b = e.OriginalSource as Button;
+                var r = b == null ? null : b.Tag as BuscaVM;
+                if (r == null) return;
+                if (Convert.ToString(b.Content) == "Mostrar arquivo") { try { Process.Start("explorer.exe", "/select,\"" + r.A.Arquivo + "\""); } catch { } return; }
+                // restaurar só este arquivo
+                vm.ArquivosPjc.Clear();
+                A<RadioButton>("rsTipoPjc").IsChecked = true;
+                AdicionarArquivosPjc(new[] { r.A.Arquivo });
+                A<RadioButton>("abaRestaurar").IsChecked = true;
+                asRs.Terminou = false; asRs.Ir(1);
+            }));
             A<ItemsControl>("lstHistorico").AddHandler(ButtonBase.ClickEvent, new RoutedEventHandler((s, e) =>
             {
                 var b = e.OriginalSource as Button;
@@ -850,6 +1277,45 @@ namespace PjeCalcBackup
                     asRs.Terminou = false; asRs.Ir(1);
                 }
             }));
+        }
+
+        private List<AchadoBusca> indiceBusca;
+        private string indiceDe;
+        private bool indexando;
+
+        /// <summary>Busca o texto digitado nos .PJC de todos os backups (o índice é montado na primeira busca).</summary>
+        private void Buscar()
+        {
+            string termo = (A<TextBox>("txtBuscaHist").Text ?? "").Trim();
+            var st = A<TextBlock>("txtStatusBusca");
+            bool buscando = termo.Length > 0;
+            A<ScrollViewer>("rolagemBusca").Visibility = buscando ? Visibility.Visible : Visibility.Collapsed;
+            A<ScrollViewer>("rolagemHist").Visibility = buscando ? Visibility.Collapsed : Visibility.Visible;
+            st.Visibility = buscando ? Visibility.Visible : Visibility.Collapsed;
+            if (!buscando) { vm.Busca.Clear(); return; }
+            if (indiceBusca == null || indiceDe != config.Destino)
+            {
+                if (indexando) return;
+                indexando = true;
+                string destino = config.Destino;
+                st.Text = "Lendo os arquivos .PJC dos backups…";
+                Task.Factory.StartNew(() =>
+                {
+                    List<AchadoBusca> l;
+                    try { l = BuscaBackups.Indexar(destino, (i, n) => NaTela(() => st.Text = "Lendo os arquivos .PJC dos backups… " + i + " de " + n), null); }
+                    catch { l = new List<AchadoBusca>(); }
+                    NaTela(() => { indiceBusca = l; indiceDe = destino; indexando = false; Buscar(); });
+                });
+                return;
+            }
+            var achados = BuscaBackups.Filtrar(indiceBusca, termo);
+            vm.Busca.Clear();
+            foreach (var a in achados.Take(200)) vm.Busca.Add(new BuscaVM(a));
+            int calcs = achados.Select(a => a.Info.Chave).Distinct().Count();
+            st.Text = achados.Count == 0
+                ? "Nada encontrado em " + indiceBusca.Count + " arquivo(s) .PJC dos backups."
+                : achados.Count + " arquivo(s) encontrado(s)" + (calcs < achados.Count ? " (" + calcs + " cálculo(s) diferente(s), em backups de datas diferentes)" : "") +
+                  (achados.Count > 200 ? ". Mostrando os 200 mais recentes." : ". Mais recentes primeiro.");
         }
 
         private void CarregarHistorico()
@@ -909,6 +1375,7 @@ namespace PjeCalcBackup
                         A<TextBlock>("txtAtualizacao").Text = "Nova versão do PJe-Calc Backup disponível: " + n.Versao + " (você tem a " + Atualizacao.Atual + ").";
                         A<Border>("avisoAtualizacao").Visibility = Visibility.Visible;
                         txt.Text = atual + " · nova versão " + n.Versao + " disponível";
+                        A<Button>("btnAtualizarAgora").Visibility = Visibility.Visible;
                     }
                     else txt.Text = atual + (manual ? (erro != null ? " · não consegui verificar (" + erro + ")" : " · é a mais recente") : "");
                 });
@@ -925,16 +1392,28 @@ namespace PjeCalcBackup
                 if (Convert.ToString(r.Tag) == (config.Tema ?? "Sistema")) r.IsChecked = true;
                 r.Checked += (s, e) => { config.Tema = Convert.ToString(((RadioButton)s).Tag); config.Salvar(); AplicarTema(); };
             }
-            foreach (RadioButton r in A<StackPanel>("paletas").Children)
+            var paletas = A<Panel>("paletas");
+            for (int i = 0; i < Tema.Paletas.Length; i++)
             {
-                if (Convert.ToInt32(r.Tag) == config.Paleta) r.IsChecked = true;
+                var r = new RadioButton
+                {
+                    GroupName = "paleta", Tag = i, Content = Tema.Paletas[i].Nome,
+                    Style = (Style)janela.FindResource("Amostra"),
+                    Background = new SolidColorBrush((Color)ColorConverter.ConvertFromString(Tema.Paletas[i].P)),
+                    ToolTip = Tema.Paletas[i].Nome
+                };
+                if (i == config.Paleta) r.IsChecked = true;
                 r.Checked += (s, e) => { config.Paleta = Convert.ToInt32(((RadioButton)s).Tag); config.Salvar(); AplicarTema(); };
+                paletas.Children.Add(r);
             }
+            ConfigurarLimpeza();
+            ConfigurarAgenda();
             var dias = A<ComboBox>("cmbDiasLembrete");
             foreach (ComboBoxItem it in dias.Items) if (Convert.ToInt32(it.Tag) == config.LembreteDias) dias.SelectedItem = it;
             dias.SelectionChanged += (s, e) => { var it = dias.SelectedItem as ComboBoxItem; if (it != null) { config.LembreteDias = Convert.ToInt32(it.Tag); config.Salvar(); } };
             A<Button>("btnEscolherCfg").Click += (s, e) => { var p = SeletorPasta.Escolher(janela, "Escolha a pasta padrão dos backups", vm.Destino); if (p != null) vm.Destino = p; };
             A<Button>("btnVerificarAgora").Click += (s, e) => VerificarAtualizacao(true);
+            A<Button>("btnAtualizarAgora").Click += (s, e) => AtualizarAgora();
             A<TextBlock>("txtVersao").Text = "Versão instalada: " + Atualizacao.Atual;
             vm.PropertyChanged += (s, e) => config.Salvar();
         }
@@ -976,6 +1455,7 @@ namespace PjeCalcBackup
                     }
                     else fim(res);
                     ultimaPasta = res.Pasta;
+                    indiceBusca = null;
                     AtualizarEstados();
                 });
             }, TaskCreationOptions.LongRunning);
@@ -1017,7 +1497,7 @@ namespace PjeCalcBackup
                 case TipoLog.Ok: icone = "✓"; cor = "Ok"; break;
                 case TipoLog.Erro: icone = "✗"; cor = "Erro"; break;
                 case TipoLog.Aviso: icone = "!"; cor = "Aviso"; break;
-                case TipoLog.Titulo: icone = "▸"; cor = "Primaria"; peso = FontWeights.SemiBold; margem = new Thickness(0, 8, 0, 2); break;
+                case TipoLog.Titulo: icone = "▸"; cor = "PrimariaTexto"; peso = FontWeights.SemiBold; margem = new Thickness(0, 8, 0, 2); break;
                 default: icone = "•"; cor = "TextoSuave"; break;
             }
             NaTela(() =>

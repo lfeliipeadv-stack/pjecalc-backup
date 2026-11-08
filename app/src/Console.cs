@@ -16,8 +16,10 @@ namespace PjeCalcBackup
         private Config config;
         private List<Instalacao> instalacoes = new List<Instalacao>();
         private volatile bool cancelado, emOperacao;
+        private bool semPerguntas; // modo automático/agendado: nunca espera por uma tecla
         private string ultimaEtapa = "";
         private double ultimaFracao;
+        private Atualizacao.Novidade novidade;
 
         // ================================================================ entrada
 
@@ -28,6 +30,7 @@ namespace PjeCalcBackup
             try { Console.Title = "PJe-Calc Backup"; } catch { }
             var m = new ModoConsole();
             m.config = Config.Carregar();
+            Atualizacao.LimparAntigos();
             Console.CancelKeyPress += (s, e) =>
             {
                 if (!m.emOperacao) return; // no menu, Ctrl+C fecha o programa normalmente
@@ -35,7 +38,26 @@ namespace PjeCalcBackup
             };
             try
             {
+                // arquivos arrastados sobre o .bat/.exe: .PJC ou pastas → restaurar; .zip → restaurar o banco
+                if (args.Length > 0 && args.All(a => !a.StartsWith("-") && !a.StartsWith("/") && (File.Exists(a) || Directory.Exists(a))))
+                {
+                    m.AjustarJanela();
+                    if (args.Length == 1 && args[0].EndsWith(".zip", StringComparison.OrdinalIgnoreCase)) m.FluxoRestaurarBanco(args[0]);
+                    else
+                    {
+                        var arqs = new List<string>();
+                        foreach (var a in args)
+                        {
+                            if (Directory.Exists(a)) arqs.AddRange(Directory.GetFiles(a, "*.PJC", SearchOption.AllDirectories));
+                            else if (a.EndsWith(".pjc", StringComparison.OrdinalIgnoreCase)) arqs.Add(a);
+                        }
+                        m.FluxoRestaurar(arqs.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList());
+                    }
+                    return 0;
+                }
                 if (args.Length > 0) return m.Automatico(args);
+                m.AjustarJanela();
+                m.VerificarAtualizacaoEmSegundoPlano();
                 m.Menu();
                 return 0;
             }
@@ -76,7 +98,7 @@ namespace PjeCalcBackup
                 Console.SetCursorPosition(0, topo);
                 for (int i = 0; i < opcoes.Count; i++)
                 {
-                    string t = "   " + (i == sel ? "❯ " : "  ") + opcoes[i];
+                    string t = "   " + (i == sel ? "► " : "  ") + opcoes[i];
                     if (i == sel) Linha(ConsoleColor.Cyan, t.PadRight(Math.Max(t.Length, Console.WindowWidth - 1)));
                     else Linha(ConsoleColor.Gray, t.PadRight(Math.Max(t.Length, Console.WindowWidth - 1)));
                 }
@@ -110,7 +132,7 @@ namespace PjeCalcBackup
                 for (int j = 0; j < visiveis; j++)
                 {
                     int i = ini + j;
-                    string t = i < itens.Count ? "   " + (i == sel ? "❯ " : "  ") + (m[i] ? "[✓] " : "[ ] ") + itens[i] : "";
+                    string t = i < itens.Count ? "   " + (i == sel ? "► " : "  ") + (m[i] ? "[√] " : "[ ] ") + itens[i] : "";
                     int largura = Console.WindowWidth - 1;
                     string et = (i < itens.Count && etiquetas != null && !string.IsNullOrEmpty(etiquetas[i])) ? "  " + etiquetas[i] : "";
                     if (t.Length + et.Length > largura) t = t.Substring(0, Math.Max(0, largura - et.Length - 1)) + "…";
@@ -178,6 +200,10 @@ namespace PjeCalcBackup
                     Console.WriteLine();
                 }
                 catch { }
+                lock (this)
+                {
+                    if (novidade != null) { Linha(ConsoleColor.Cyan, "  * Nova versão disponível: " + novidade.Versao + " (você tem a " + Atualizacao.Atual + "). Veja em Configurações → Atualizar."); Console.WriteLine(); }
+                }
                 int op = Escolher("O que você quer fazer?", new[]
                 {
                     "1  Fazer backup",
@@ -185,17 +211,23 @@ namespace PjeCalcBackup
                     "3  Migrar cálculos entre versões",
                     "4  Restaurar o banco completo (.zip)",
                     "5  Histórico de backups",
-                    "6  Configurações",
+                    "6  Buscar um cálculo nos backups",
+                    "7  Planilha dos cálculos (Excel)",
+                    "8  Limpar backups antigos",
+                    "9  Configurações (backup automático, atualização…)",
                     "0  Sair"
                 });
                 switch (op)
                 {
                     case 0: FluxoBackup(); break;
-                    case 1: FluxoRestaurar(); break;
+                    case 1: FluxoRestaurar(null); break;
                     case 2: FluxoMigrar(); break;
-                    case 3: FluxoRestaurarBanco(); break;
+                    case 3: FluxoRestaurarBanco(null); break;
                     case 4: FluxoHistorico(); break;
-                    case 5: FluxoConfiguracoes(); break;
+                    case 5: FluxoBuscar(); break;
+                    case 6: FluxoPlanilha(); break;
+                    case 7: FluxoLimpeza(); break;
+                    case 8: FluxoConfiguracoes(); break;
                     default: return;
                 }
             }
@@ -270,7 +302,7 @@ namespace PjeCalcBackup
         {
             Console.WriteLine();
             bool ok = r.Falhas == 0;
-            Linha(ok ? ConsoleColor.Green : ConsoleColor.Yellow, "  " + (ok ? "✓ " : "! ") + texto);
+            Linha(ok ? ConsoleColor.Green : ConsoleColor.Yellow, "  " + (ok ? "√ " : "! ") + texto);
             if (r.Reaberto != null) Linha(ConsoleColor.Gray, "    O " + r.Reaberto + " foi reaberto.");
             Linha(ConsoleColor.Gray, "    Pasta: " + r.Pasta);
             if (config.Sons) Avisos.Som(ok);
@@ -333,10 +365,12 @@ namespace PjeCalcBackup
             return null;
         }
 
-        private void FluxoRestaurar()
+        private void FluxoRestaurar(List<string> jaEscolhidos)
         {
             Cabecalho("Restaurar cálculos (.PJC)  ·  etapa 1 de 3: arquivos");
-            var arqs = PedirArquivosPjc();
+            var arqs = jaEscolhidos;
+            if (arqs != null) Linha(ConsoleColor.Gray, "  " + arqs.Count + " arquivo(s) .PJC escolhido(s).");
+            else arqs = PedirArquivosPjc();
             if (arqs == null || arqs.Count == 0) { Aviso("Nenhum arquivo .PJC."); Pausa(); return; }
             CarregarInstalacoes();
             Cabecalho("Restaurar cálculos (.PJC)  ·  etapa 2 de 3: destino");
@@ -399,10 +433,10 @@ namespace PjeCalcBackup
             Pausa();
         }
 
-        private void FluxoRestaurarBanco()
+        private void FluxoRestaurarBanco(string zipEscolhido)
         {
             Cabecalho("Restaurar o banco completo");
-            string zip = Perguntar("Arquivo .zip do backup do banco (pode arrastar para cá)", null);
+            string zip = zipEscolhido ?? Perguntar("Arquivo .zip do backup do banco (pode arrastar para cá)", null);
             if (string.IsNullOrEmpty(zip) || !File.Exists(zip)) { Aviso("Arquivo não encontrado."); Pausa(); return; }
             CarregarInstalacoes();
             string v = BancoPjeCalc.VersaoDoZip(zip);
@@ -442,6 +476,10 @@ namespace PjeCalcBackup
                     "2  Sons ao terminar: " + (config.Sons ? "ligados" : "desligados"),
                     "3  Reabrir o PJe-Calc no final: " + (config.ReabrirPjeCalc ? "sim" : "não"),
                     "4  Lembrete de backup: " + (config.Lembrete ? "a cada " + config.LembreteDias + " dias" : "desligado"),
+                    "5  Limpeza de backups antigos: " + Limpeza.Descrever(config.Limpeza),
+                    "6  Backup automático: " + TextoAgenda(),
+                    "7  Atualizar o programa (versão instalada: " + Atualizacao.Atual + ")",
+                    "8  Sobre e apoie este projeto ♥",
                     "0  Voltar"
                 });
                 if (s == 0) { string p = Perguntar("Nova pasta dos backups", config.Destino); config.Destino = p; }
@@ -452,8 +490,272 @@ namespace PjeCalcBackup
                     int d = Escolher("Lembrete:", new[] { "Desligado", "7 dias", "15 dias", "30 dias" });
                     if (d == 0) config.Lembrete = false; else if (d > 0) { config.Lembrete = true; config.LembreteDias = new[] { 0, 7, 15, 30 }[d]; }
                 }
+                else if (s == 4)
+                {
+                    int d = Escolher("Limpeza de backups antigos (ao terminar um backup, o programa oferece mover os antigos para a Lixeira):",
+                        Limpeza.Codigos.Select(Limpeza.Descrever).ToList(), Array.IndexOf(Limpeza.Codigos, config.Limpeza ?? ""));
+                    if (d >= 0) config.Limpeza = Limpeza.Codigos[d];
+                }
+                else if (s == 5) FluxoAgenda();
+                else if (s == 6) { if (FluxoAtualizar()) return; }
+                else if (s == 7) FluxoSobre();
                 else { config.Salvar(); return; }
                 config.Salvar();
+            }
+        }
+
+        // ================================================================ 1.3: agenda, atualização, busca, planilha, limpeza
+
+        /// <summary>A janela padrão do CMD é pequena; aumenta, mantendo o histórico de rolagem.</summary>
+        private void AjustarJanela()
+        {
+            try
+            {
+                int w = Math.Min(130, Console.LargestWindowWidth), h = Math.Min(42, Console.LargestWindowHeight);
+                if (Console.BufferWidth < w) Console.BufferWidth = w;
+                if (Console.BufferHeight < 3000) Console.BufferHeight = 3000;
+                if (Console.WindowWidth < w) Console.WindowWidth = w;
+                if (Console.WindowHeight < h) Console.WindowHeight = h;
+            }
+            catch { }
+        }
+
+        private void VerificarAtualizacaoEmSegundoPlano()
+        {
+            if (!config.VerificarAtualizacoes) return;
+            ThreadPool.QueueUserWorkItem(_ => { try { var n = Atualizacao.Verificar(); lock (this) novidade = n; } catch { } });
+        }
+
+        private string TextoAgenda()
+        {
+            var e = Agendador.Consultar();
+            if (!e.Existe) return "desligado";
+            return "ligado, " + Agendador.Descrever(config.AgendaFrequencia, config.AgendaDias, config.AgendaHora) + (e.ExeExiste ? "" : " (programa não encontrado — salve de novo)");
+        }
+
+        private void FluxoAgenda()
+        {
+            Cabecalho("Backup automático");
+            var e = Agendador.Consultar();
+            if (e.Existe)
+            {
+                Linha(ConsoleColor.Green, "  Ligado: " + Agendador.Descrever(config.AgendaFrequencia, config.AgendaDias, config.AgendaHora));
+                if (!string.IsNullOrEmpty(e.Proxima)) Linha(ConsoleColor.Gray, "  Próximo: " + e.Proxima + (string.IsNullOrEmpty(e.Resultado) ? "" : "   ·   Último: " + e.Ultima + " (" + e.Resultado + ")"));
+                Console.WriteLine();
+            }
+            Linha(ConsoleColor.DarkGray, "  Cria uma tarefa no Agendador de Tarefas do Windows. Roda com você conectado; se o computador");
+            Linha(ConsoleColor.DarkGray, "  estiver desligado na hora marcada, roda assim que for ligado. Usa a pasta de backups e as");
+            Linha(ConsoleColor.DarkGray, "  versões marcadas no programa. Se o PJe-Calc estiver aberto, avisa e espera 2 minutos.");
+            Console.WriteLine();
+            int op = Escolher(null, e.Existe ? new[] { "1  Alterar dias e horário", "2  Desligar o backup automático", "0  Voltar" } : new[] { "1  Ligar o backup automático", "0  Voltar" });
+            if (op < 0 || (e.Existe ? op == 2 : op == 1)) return;
+            if (e.Existe && op == 1) { try { Agendador.Remover(); Linha(ConsoleColor.Green, "  √ Backup automático desligado."); } catch (Exception ex) { Aviso(ex.Message); } Pausa(); return; }
+
+            int f = Escolher("Com que frequência?", new[] { "1  Todos os dias", "2  Em dias da semana" }, config.AgendaFrequencia == "diario" ? 0 : 1);
+            if (f < 0) return;
+            string freq = f == 0 ? "diario" : "semanal";
+            var dias = config.AgendaDias;
+            if (freq == "semanal")
+            {
+                var m = Marcar("Quais dias?", Agendador.DiasPt.ToList(), Agendador.Dias.Select(d => config.AgendaDias.Contains(d)).ToArray());
+                if (m == null) return;
+                dias = Agendador.Dias.Where((d, i) => m[i]).ToList();
+                if (dias.Count == 0) { Aviso("Nenhum dia marcado."); Pausa(); return; }
+            }
+            string hora = Perguntar("Horário (ex.: 18:00)", config.AgendaHora);
+            if (hora.Length == 4 && hora[1] == ':') hora = "0" + hora;
+            bool limpar = false;
+            if (!string.IsNullOrEmpty(config.Limpeza) && Limpeza.TemLixeira(config.Destino))
+                limpar = SimNao("Depois do backup, aplicar a limpeza (" + Limpeza.Descrever(config.Limpeza) + ") sem perguntar?", config.AgendaLimpar);
+            try
+            {
+                Agendador.Criar(freq, dias, hora, limpar);
+                config.AgendaFrequencia = freq; config.AgendaDias = dias; config.AgendaHora = hora; config.AgendaLimpar = limpar; config.Salvar();
+                Linha(ConsoleColor.Green, "  √ Backup automático ligado: " + Agendador.Descrever(freq, dias, hora) + ".");
+            }
+            catch (Exception ex) { Aviso(ex.Message); }
+            Pausa();
+        }
+
+        private void FluxoSobre()
+        {
+            Cabecalho("Sobre e apoie este projeto");
+            Linha(ConsoleColor.White, "  Este programa nasceu de uma dificuldade real no dia a dia da advocacia: ao instalar uma");
+            Linha(ConsoleColor.White, "  versão nova do PJe-Calc, os cálculos não vão junto, e a única saída era exportar e importar");
+            Linha(ConsoleColor.White, "  um por um, manualmente, o que levava horas. O PJe-Calc Backup faz isso de forma automática");
+            Linha(ConsoleColor.White, "  e segura, com conferência no final.");
+            Console.WriteLine();
+            Linha(ConsoleColor.Gray, "  Projeto independente, gratuito e de código aberto, feito no Brasil.");
+            Linha(ConsoleColor.DarkGray, "  Não oficial: sem vínculo com nenhum TRT, com o CSJT ou com a equipe do PJe-Calc.");
+            Linha(ConsoleColor.DarkGray, "  Licença MIT: pode usar, copiar, modificar e compartilhar, mantendo o aviso de autoria; sem garantia.");
+            Linha(ConsoleColor.DarkGray, "  " + Atualizacao.UrlProjeto);
+            Console.WriteLine();
+            Cor(ConsoleColor.Red, "  ♥ "); Linha(ConsoleColor.White, "Apoie este projeto: se ele economizou o seu tempo, um PIX de qualquer valor ajuda. Obrigado!");
+            Cor(ConsoleColor.Gray, "    Chave PIX (aleatória): "); Linha(ConsoleColor.Cyan, Pix.Chave);
+            Console.WriteLine();
+            DesenharQr(Pix.CopiaECola());
+            Console.WriteLine();
+            int op = Escolher(null, new[] { "1  Copiar a chave PIX", "2  Copiar o código \"Pix Copia e Cola\"", "0  Voltar" });
+            string texto = op == 0 ? Pix.Chave : op == 1 ? Pix.CopiaECola() : null;
+            if (texto == null) return;
+            try { System.Windows.Forms.Clipboard.SetText(texto); Linha(ConsoleColor.Green, "  √ Copiado. Cole no app do banco."); }
+            catch { Aviso("Não consegui copiar. Selecione o texto na tela e copie."); }
+            Pausa();
+        }
+
+        /// <summary>QR Code no terminal com meios-blocos (▀ ▄ █), preto no branco para os apps de banco lerem.</summary>
+        private void DesenharQr(string texto)
+        {
+            bool[,] m;
+            try { m = QrCode.Gerar(texto); } catch { return; }
+            int n = m.GetLength(0), q = 2;
+            Func<int, int, bool> escuro = (x, y) => x >= 0 && y >= 0 && x < n && y < n && m[y, x];
+            var fundo = Console.BackgroundColor; var frente = Console.ForegroundColor;
+            for (int y = -q; y < n + q; y += 2)
+            {
+                Console.Write("    ");
+                Console.BackgroundColor = ConsoleColor.White; Console.ForegroundColor = ConsoleColor.Black;
+                var sb = new StringBuilder();
+                for (int x = -q; x < n + q; x++)
+                {
+                    bool a = escuro(x, y), b = escuro(x, y + 1);
+                    sb.Append(a && b ? '█' : a ? '▀' : b ? '▄' : ' ');
+                }
+                Console.Write(sb.ToString());
+                Console.BackgroundColor = fundo; Console.ForegroundColor = frente;
+                Console.WriteLine();
+            }
+        }
+
+        /// <summary>true = atualizou (o programa deve fechar).</summary>
+        private bool FluxoAtualizar()
+        {
+            Cabecalho("Atualizar o programa");
+            Linha(ConsoleColor.DarkGray, "  Verificando no GitHub…");
+            Atualizacao.Novidade n;
+            try { n = Atualizacao.Verificar(); }
+            catch (Exception ex) { Aviso("Não consegui verificar: " + ex.Message); Pausa(); return false; }
+            if (n == null) { Linha(ConsoleColor.Green, "  √ Você já tem a versão mais recente (" + Atualizacao.Atual + ")."); Pausa(); return false; }
+            Linha(ConsoleColor.Cyan, "  Nova versão: " + n.Versao + " (você tem a " + Atualizacao.Atual + ").  O que mudou: " + n.Url);
+            if (!SimNao("Baixar e instalar agora? (o SHA-256 de cada arquivo é conferido)", true)) return false;
+            try
+            {
+                Atualizacao.Instalar(n, t => Linha(ConsoleColor.Gray, "  • " + t));
+                Linha(ConsoleColor.Green, "  √ Atualizado para a versão " + n.Versao + ". Abra o programa de novo para usar a versão nova.");
+                Pausa();
+                return true;
+            }
+            catch (Exception ex) { Aviso("Não consegui atualizar: " + ex.Message); Pausa(); return false; }
+        }
+
+        private void FluxoBuscar()
+        {
+            Cabecalho("Buscar um cálculo nos backups  ·  " + config.Destino);
+            string termo = Perguntar("Nome do reclamante ou reclamado, ou nº do processo", null);
+            if (string.IsNullOrWhiteSpace(termo)) return;
+            Linha(ConsoleColor.DarkGray, "  Lendo os arquivos .PJC dos backups…");
+            var todos = BuscaBackups.Indexar(config.Destino, null, null);
+            var achados = BuscaBackups.Filtrar(todos, termo);
+            if (achados.Count == 0) { Aviso("Nada encontrado em " + todos.Count + " arquivo(s) .PJC."); Pausa(); return; }
+            var lista = achados.Take(60).ToList();
+            int s = Escolher(achados.Count + " arquivo(s) encontrado(s), mais recentes primeiro" + (achados.Count > 60 ? " (mostrando 60)" : "") + ". Escolha um:",
+                lista.Select(a => (a.Data.ToString("dd/MM/yyyy") + "  " + ("PJe-Calc " + a.Versao).PadRight(16) + ("nº " + a.Info.Numero).PadRight(8) + (a.Info.Reclamante ?? "") +
+                    (string.IsNullOrEmpty(a.Info.Reclamado) ? "" : " × " + a.Info.Reclamado) + (string.IsNullOrEmpty(a.Info.Processo) ? "" : "  ·  " + a.Info.Processo))).ToList());
+            if (s < 0) return;
+            var esc = lista[s];
+            Console.WriteLine();
+            Linha(ConsoleColor.Gray, "  " + esc.Arquivo);
+            int acao = Escolher(null, new[] { "1  Restaurar este cálculo", "2  Mostrar o arquivo na pasta", "0  Voltar" });
+            if (acao == 0) FluxoRestaurar(new List<string> { esc.Arquivo });
+            else if (acao == 1) { try { Process.Start("explorer.exe", "/select,\"" + esc.Arquivo + "\""); } catch { } }
+        }
+
+        private void FluxoPlanilha()
+        {
+            Cabecalho("Planilha dos cálculos (Excel)");
+            CarregarInstalacoes();
+            if (instalacoes.Count == 0) { Aviso("Nenhuma instalação do PJe-Calc com cálculos foi encontrada."); Pausa(); return; }
+            var marc = Marcar("Quais versões entram na planilha?", instalacoes.Select(Rotulo).ToList(), instalacoes.Select(i => true).ToArray());
+            if (marc == null) return;
+            var linhas = new List<Planilha.Linha>();
+            foreach (var inst in instalacoes.Where((i, k) => marc[k]))
+            {
+                try { linhas.AddRange(BancoPjeCalc.Listar(inst).Select(c => new Planilha.Linha { Versao = inst.Versao, C = c })); }
+                catch (Exception ex) { Aviso("PJe-Calc " + inst.Versao + ": " + ex.Message); }
+            }
+            string padrao = Path.Combine(Directory.Exists(config.Destino) ? config.Destino : Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments),
+                "Cálculos PJe-Calc " + DateTime.Now.ToString("yyyy-MM-dd") + ".xlsx");
+            string arq = Perguntar("Salvar em", padrao);
+            if (!arq.EndsWith(".xlsx", StringComparison.OrdinalIgnoreCase)) arq += ".xlsx";
+            try
+            {
+                Planilha.Salvar(arq, linhas);
+                Linha(ConsoleColor.Green, "  √ " + linhas.Count + " cálculo(s) salvos em " + arq);
+                Linha(ConsoleColor.DarkGray, "  A planilha tem nomes das partes: guarde-a em local seguro.");
+                if (SimNao("Abrir a planilha?", true)) { try { Process.Start(arq); } catch { } }
+            }
+            catch (Exception ex) { Aviso("Não consegui salvar: " + ex.Message); }
+            Pausa();
+        }
+
+        /// <summary>Mostra os backups que a regra manda apagar e move para a Lixeira (perguntar = false: sem confirmação, só no modo agendado).</summary>
+        private void FluxoLimpeza(bool perguntar = true)
+        {
+            if (perguntar) Cabecalho("Limpar backups antigos");
+            if (string.IsNullOrEmpty(config.Limpeza)) { Aviso("A limpeza está desligada. Escolha uma regra em Configurações → Limpeza de backups antigos."); if (perguntar) Pausa(); return; }
+            var cand = Limpeza.Candidatos(config.Destino, config.Limpeza);
+            if (cand.Count == 0) { Linha(ConsoleColor.Green, "  √ Nenhum backup se encaixa na regra \"" + Limpeza.Descrever(config.Limpeza) + "\"."); if (perguntar) Pausa(); return; }
+            bool lixeira = Limpeza.TemLixeira(config.Destino);
+            long total = cand.Sum(c => Limpeza.Tamanho(c.PastaOperacao));
+            Linha(ConsoleColor.White, "  Regra: " + Limpeza.Descrever(config.Limpeza) + ". " + cand.Count + " backup(s) antigo(s), " + Limpeza.TextoTamanho(total) + ":");
+            foreach (var c in cand.OrderBy(c => c.Data).Take(15)) Linha(ConsoleColor.Gray, "    • " + c.Data.ToString("dd/MM/yyyy HH:mm") + "  (" + c.Calculos + " cálculo(s))  " + c.PastaOperacao);
+            if (cand.Count > 15) Linha(ConsoleColor.Gray, "    • … e mais " + (cand.Count - 15));
+            if (!lixeira)
+            {
+                Aviso("A pasta de backups fica num pendrive, HD externo ou rede, sem Lixeira: os backups seriam apagados DEFINITIVAMENTE.");
+                if (!perguntar) { Aviso("Limpeza automática não feita por esse motivo."); return; }
+            }
+            if (perguntar && !SimNao(lixeira ? "Mover para a Lixeira?" : "Apagar definitivamente?", false)) return;
+            int n = Limpeza.MoverParaLixeira(cand, er => Aviso(er));
+            Linha(ConsoleColor.Green, "  √ " + n + " backup(s) antigo(s) " + (lixeira ? "movido(s) para a Lixeira" : "apagado(s)") + ".");
+            if (perguntar) Pausa();
+        }
+
+        /// <summary>Modo agendado: se alguma versão estiver aberta, avisa e espera antes de fechar (Enter = agora, A = adiar 30 min, Esc = pular hoje).</summary>
+        private bool EsperarPjeCalcLivre(List<Instalacao> envolvidas)
+        {
+            for (int adiamentos = 0; ; adiamentos++)
+            {
+                string ab = TextoAbertas(envolvidas);
+                if (ab == null) return true;
+                Avisos.NotificarEsperando("Backup automático do PJe-Calc", "O " + ab + " está aberto e será fechado com segurança em 2 minutos. Salve o que estiver editando.", true);
+                Console.WriteLine();
+                Linha(ConsoleColor.Yellow, "  ┌─ Backup automático ─────────────────────────────────────────");
+                Linha(ConsoleColor.Yellow, "  │ O " + ab + " está aberto. Salve o que estiver editando.");
+                Linha(ConsoleColor.Yellow, "  │ Ele será fechado com segurança" + (config.ReabrirPjeCalc ? " e reaberto no final." : "."));
+                Linha(ConsoleColor.Yellow, "  │ Enter = fazer agora   ·   A = adiar 30 minutos   ·   Esc = pular o backup de hoje");
+                Linha(ConsoleColor.Yellow, "  └─────────────────────────────────────────────────────────────");
+                var fim = DateTime.Now.AddMinutes(2);
+                char r = ' ';
+                while (DateTime.Now < fim && r == ' ')
+                {
+                    try { Console.Write("\r  Fechando em " + (int)(fim - DateTime.Now).TotalSeconds + " s…   "); } catch { }
+                    try
+                    {
+                        if (Console.KeyAvailable)
+                        {
+                            var k = Console.ReadKey(true);
+                            if (k.Key == ConsoleKey.Enter) r = 'E'; else if (k.Key == ConsoleKey.A) r = 'A'; else if (k.Key == ConsoleKey.Escape) r = 'X';
+                        }
+                    }
+                    catch { }
+                    Thread.Sleep(250);
+                }
+                Console.WriteLine();
+                if (r == 'X') return false;
+                if (r != 'A' || adiamentos >= 3) return true;
+                Linha(ConsoleColor.Gray, "  Adiado: tento de novo às " + DateTime.Now.AddMinutes(30).ToString("HH:mm") + ".");
+                Thread.Sleep(TimeSpan.FromMinutes(30));
             }
         }
 
@@ -462,6 +764,20 @@ namespace PjeCalcBackup
         private int Automatico(string[] args)
         {
             var a = args.Select(x => x.ToLowerInvariant()).ToList();
+            if (a.Count == 1 && a[0] == "--atualizar")
+            {
+                Console.WriteLine("PJe-Calc Backup " + Atualizacao.Atual + " — verificando atualização no GitHub…");
+                try
+                {
+                    var n = Atualizacao.Verificar();
+                    if (n == null) { Console.WriteLine("Já é a versão mais recente."); return 0; }
+                    Console.WriteLine("Nova versão: " + n.Versao);
+                    Atualizacao.Instalar(n, t => Console.WriteLine("  " + t));
+                    Console.WriteLine("Atualizado para a versão " + n.Versao + ".");
+                    return 0;
+                }
+                catch (Exception ex) { Linha(ConsoleColor.Red, "Não consegui atualizar: " + ex.Message); return 1; }
+            }
             if (a.Contains("--ajuda") || a.Contains("-h") || a.Contains("/?") || !a.Contains("--backup"))
             {
                 Console.WriteLine("PJe-Calc Backup " + Atualizacao.Atual + " — modo console\n");
@@ -469,10 +785,21 @@ namespace PjeCalcBackup
                 Console.WriteLine("Backup automático (sem perguntas):");
                 Console.WriteLine("  PJeCalcBackup-Console.exe --backup [--destino \"pasta\"] [--versoes 2.16.0,2.14.0] [--pasta \"C:\\pjecalc-...\"]");
                 Console.WriteLine("                            [--sem-pjc] [--sem-banco] [--nao-reabrir]\n");
+                Console.WriteLine("                            [--agendado] [--limpar]\n");
                 Console.WriteLine("  --pasta     (pode repetir) usa só estas instalações, sem procurar no computador");
-                Console.WriteLine("Atenção: fecha com segurança o PJe-Calc que estiver aberto. Código de saída: 0 = ok, 1 = houve falhas.");
-                return a.Contains("--backup") ? 0 : (args.Length == 0 ? 0 : 0);
+                Console.WriteLine("  --agendado  usado pelo backup automático: respeita as versões desmarcadas no programa, avisa e espera");
+                Console.WriteLine("              2 minutos se o PJe-Calc estiver aberto, e mostra uma notificação do Windows no final");
+                Console.WriteLine("  --limpar    depois do backup, move para a Lixeira os backups antigos (regra das Configurações)\n");
+                Console.WriteLine("Atualizar o programa (baixa do GitHub e confere o SHA-256):  PJeCalcBackup-Console.exe --atualizar\n");
+                Console.WriteLine("Arrastar arquivos .PJC (ou uma pasta) sobre o programa abre a restauração deles;");
+                Console.WriteLine("arrastar um .zip do banco abre a restauração do banco.\n");
+                Console.WriteLine("Atenção: fecha com segurança o PJe-Calc que estiver aberto. Código de saída: 0 = ok, 1 = houve falhas.\n");
+                Console.WriteLine("Licença MIT. Projeto independente e não oficial. Apoie o projeto: chave PIX " + Pix.Chave);
+                return 0;
             }
+            bool agendado = a.Contains("--agendado");
+            semPerguntas = true;
+            if (agendado) { try { Console.Title = "PJe-Calc Backup — backup automático"; } catch { } }
             Func<string, string> valor = nome => { int i = a.IndexOf(nome); return i >= 0 && i + 1 < args.Length ? args[i + 1] : null; };
             var op = new OpcoesBackup
             {
@@ -493,12 +820,33 @@ namespace PjeCalcBackup
             string vs = valor("--versoes");
             var escolhidas = string.IsNullOrEmpty(vs) || vs.ToLowerInvariant() == "todas" ? instalacoes :
                 instalacoes.Where(i => vs.Split(',').Select(x => x.Trim()).Contains(i.Versao)).ToList();
-            if (escolhidas.Count == 0) { Linha(ConsoleColor.Red, "Nenhuma versão do PJe-Calc encontrada."); return 1; }
+            if (agendado && string.IsNullOrEmpty(vs) && pastas.Count == 0)
+                escolhidas = escolhidas.Where(i => !config.Desmarcadas.Contains(i.Pasta, StringComparer.OrdinalIgnoreCase)).ToList();
+            if (escolhidas.Count == 0)
+            {
+                Linha(ConsoleColor.Red, "Nenhuma versão do PJe-Calc encontrada.");
+                if (agendado) Avisos.NotificarEsperando("Backup automático do PJe-Calc", "Nenhuma versão do PJe-Calc foi encontrada.", false);
+                return 1;
+            }
             Linha(ConsoleColor.White, "Backup de: " + string.Join(", ", escolhidas.Select(i => "PJe-Calc " + i.Versao)) + "  →  " + op.Destino);
+            if (agendado && !EsperarPjeCalcLivre(escolhidas))
+            {
+                Linha(ConsoleColor.Yellow, "Backup de hoje pulado a pedido do usuário.");
+                return 1;
+            }
+            if (op.ExportarPjc && Navegador.Localizar() == null) { Linha(ConsoleColor.Yellow, "Sem Edge/Chrome: só o banco de dados será copiado."); op.ExportarPjc = false; }
             emOperacao = true; ResultadoBackup r; try { r = Backup.Executar(escolhidas, op, this); } finally { emOperacao = false; }
             FimProgresso();
-            Linha(r.Falhas == 0 ? ConsoleColor.Green : ConsoleColor.Yellow, (r.Falhas == 0 ? "OK: " : "COM FALHAS: ") + r.Exportados + " exportado(s), " + r.Bancos + " banco(s), " + r.Falhas + " falha(s). Pasta: " + r.Pasta);
-            return r.Falhas == 0 ? 0 : 1;
+            bool ok = r.Falhas == 0;
+            string resumo = r.Exportados + " cálculo(s) exportado(s)" + (r.Esperados > 0 ? " (" + r.Conferidos + " de " + r.Esperados + " conferidos)" : "") + ", " + r.Bancos + " banco(s), " + r.Falhas + " falha(s).";
+            Linha(ok ? ConsoleColor.Green : ConsoleColor.Yellow, (ok ? "OK: " : "COM FALHAS: ") + resumo + " Pasta: " + r.Pasta);
+            if (ok && a.Contains("--limpar")) { Console.WriteLine(); FluxoLimpeza(false); }
+            if (agendado)
+            {
+                if (config.Sons) Avisos.Som(ok);
+                if (config.Notificacoes) Avisos.NotificarEsperando(ok ? "Backup automático concluído" : "Backup automático com falhas", resumo, ok);
+            }
+            return ok ? 0 : 1;
         }
 
         // ================================================================ IRetornoBackup
@@ -536,10 +884,10 @@ namespace PjeCalcBackup
                 LimparStatus();
                 switch (tipo)
                 {
-                    case TipoLog.Ok: Linha(ConsoleColor.Green, "  ✓ " + texto); break;
-                    case TipoLog.Erro: Linha(ConsoleColor.Red, "  ✗ " + texto); break;
+                    case TipoLog.Ok: Linha(ConsoleColor.Green, "  √ " + texto); break;
+                    case TipoLog.Erro: Linha(ConsoleColor.Red, "  × " + texto); break;
                     case TipoLog.Aviso: Linha(ConsoleColor.Yellow, "  ! " + texto); break;
-                    case TipoLog.Titulo: Console.WriteLine(); Linha(ConsoleColor.Cyan, "  ▸ " + texto); break;
+                    case TipoLog.Titulo: Console.WriteLine(); Linha(ConsoleColor.Cyan, "  ► " + texto); break;
                     default: Linha(ConsoleColor.Gray, "  • " + texto); break;
                 }
                 DesenharStatus();
@@ -562,6 +910,7 @@ namespace PjeCalcBackup
             {
                 LimparStatus();
                 Aviso(descricao);
+                if (semPerguntas) { Aviso("Essa versão foi pulada (modo automático)."); return false; }
                 Linha(ConsoleColor.Yellow, "  Feche-o pelo ícone na bandeja do Windows (perto do relógio) → Sair.");
                 Cor(ConsoleColor.White, "  Pressione Enter depois de fechar, ou P para pular: ");
                 while (true)

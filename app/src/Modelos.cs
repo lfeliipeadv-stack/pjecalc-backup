@@ -90,6 +90,29 @@ namespace PjeCalcBackup
                     Grupo.Selecionado = Grupo.Filhos.All(x => x.Selecionado);
                     Grupo.propagando = false;
                 }
+                if (Grupo != null) Grupo.Avisar("ResumoGrupo");
+                if (EhGrupo) Avisar("ResumoGrupo");
+            }
+        }
+
+        public void AtualizarResumo() { Avisar("ResumoGrupo"); }
+        /// <summary>Ajusta a caixa do cabeçalho conforme os itens, sem mexer nos itens.</summary>
+        public void SincronizarGrupo() { propagando = true; Selecionado = Filhos.All(f => f.Selecionado); propagando = false; Avisar("ResumoGrupo"); }
+
+        // cabeçalho de versão recolhível
+        private bool expandido;
+        public bool Expandido
+        {
+            get { return expandido; }
+            set { expandido = value; Avisar("Expandido"); Avisar("TextoExpandir"); }
+        }
+        public string TextoExpandir { get { return expandido ? "Ocultar cálculos  ▴" : "Mostrar cálculos  ▾"; } }
+        public string ResumoGrupo
+        {
+            get
+            {
+                int n = Filhos.Count, m = Filhos.Count(f => f.Selecionado);
+                return n + " cálculo(s)   ·   " + (n == 0 ? "nenhum cálculo" : m == n ? "todos marcados" : m == 0 ? "nenhum marcado" : m + " de " + n + " marcados");
             }
         }
 
@@ -108,8 +131,62 @@ namespace PjeCalcBackup
         public string Nome { get { return Path.GetFileName(Caminho); } }
         public string Origem { get { return Path.GetDirectoryName(Caminho); } }
         public string Tamanho { get; set; }
-        private bool selecionado = true;
-        public bool Selecionado { get { return selecionado; } set { selecionado = value; Avisar("Selecionado"); } }
+
+        // agrupamento por versão (o cabeçalho é um ArquivoPjcVM com EhGrupo = true)
+        public bool EhGrupo;
+        public string Titulo { get; set; }
+        public string Versao;
+        public ArquivoPjcVM Grupo;
+        public List<ArquivoPjcVM> Filhos = new List<ArquivoPjcVM>();
+        public Visibility VisGrupo { get { return EhGrupo ? Visibility.Visible : Visibility.Collapsed; } }
+        public Visibility VisItem { get { return EhGrupo ? Visibility.Collapsed : Visibility.Visible; } }
+
+        private bool selecionado = true, propagando;
+        public bool Selecionado
+        {
+            get { return selecionado; }
+            set
+            {
+                if (selecionado == value) return;
+                selecionado = value; Avisar("Selecionado");
+                if (EhGrupo && !propagando) foreach (var f in Filhos) { f.propagando = true; f.Selecionado = value; f.propagando = false; }
+                else if (!EhGrupo && Grupo != null && !propagando)
+                {
+                    Grupo.propagando = true; Grupo.Selecionado = Grupo.Filhos.All(x => x.Selecionado); Grupo.propagando = false;
+                }
+                if (Grupo != null) Grupo.Avisar("ResumoGrupo");
+                if (EhGrupo) Avisar("ResumoGrupo");
+            }
+        }
+
+        private bool expandido;
+        public bool Expandido { get { return expandido; } set { expandido = value; Avisar("Expandido"); Avisar("TextoExpandir"); } }
+        public string TextoExpandir { get { return expandido ? "Ocultar arquivos  ▴" : "Mostrar arquivos  ▾"; } }
+        public void SincronizarGrupo() { propagando = true; Selecionado = Filhos.All(f => f.Selecionado); propagando = false; Avisar("ResumoGrupo"); }
+        public string ResumoGrupo
+        {
+            get
+            {
+                int n = Filhos.Count, m = Filhos.Count(f => f.Selecionado);
+                return n + " arquivo(s)   ·   " + (m == n ? "todos marcados" : m == 0 ? "nenhum marcado" : m + " de " + n + " marcados");
+            }
+        }
+    }
+
+    public static class VersaoPorPasta
+    {
+        /// <summary>Versão do PJe-Calc pelo nome das pastas ("PJe-Calc 2.16.0", "Exportados 2.14.0", "… (PJe-Calc 2.16.0)"). Vazio se não der para saber.</summary>
+        public static string De(string arquivo)
+        {
+            var ms = System.Text.RegularExpressions.Regex.Matches(Path.GetDirectoryName(arquivo) ?? "",
+                "(?:PJe-Calc|Exportados|Banco)\\s+(\\d+\\.\\d+(?:\\.\\d+)?)", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+            return ms.Count > 0 ? ms[ms.Count - 1].Groups[1].Value : "";
+        }
+
+        public static string Ordenavel(string v)
+        {
+            return string.Join(".", (v ?? "").Split('.').Select(x => x.PadLeft(5, '0')));
+        }
     }
 
     public class RegistroVM
@@ -137,6 +214,27 @@ namespace PjeCalcBackup
         public Visibility VisBanco { get { return R.TemBanco ? Visibility.Visible : Visibility.Collapsed; } }
     }
 
+    public class BuscaVM
+    {
+        public AchadoBusca A { get; private set; }
+        public BuscaVM(AchadoBusca a) { A = a; }
+        public string Titulo
+        {
+            get { return "nº " + A.Info.Numero + "  —  " + (A.Info.Reclamante ?? "?") + (string.IsNullOrEmpty(A.Info.Reclamado) ? "" : "  ×  " + A.Info.Reclamado); }
+        }
+        public string Detalhe
+        {
+            get
+            {
+                var p = new List<string>();
+                if (!string.IsNullOrEmpty(A.Info.Processo)) p.Add("Proc. " + A.Info.Processo);
+                if (!string.IsNullOrEmpty(A.Versao)) p.Add("PJe-Calc " + A.Versao);
+                p.Add(A.TipoOperacao + " de " + A.Data.ToString("dd/MM/yyyy HH:mm"));
+                return string.Join("   ·   ", p) + "\n" + Path.GetFileName(A.Arquivo);
+            }
+        }
+    }
+
     public class LinhaLog
     {
         public string Chave { get; set; }
@@ -159,6 +257,7 @@ namespace PjeCalcBackup
         public ObservableCollection<LinhaLog> LogRestaurar { get; private set; }
         public ObservableCollection<LinhaLog> LogMigrar { get; private set; }
         public ObservableCollection<RegistroVM> Historico { get; private set; }
+        public ObservableCollection<BuscaVM> Busca { get; private set; }
 
         private readonly Config c;
         public JanelaVM(Config config)
@@ -174,6 +273,7 @@ namespace PjeCalcBackup
             LogRestaurar = new ObservableCollection<LinhaLog>();
             LogMigrar = new ObservableCollection<LinhaLog>();
             Historico = new ObservableCollection<RegistroVM>();
+            Busca = new ObservableCollection<BuscaVM>();
         }
 
         // opções (gravadas na configuração assim que mudam)
