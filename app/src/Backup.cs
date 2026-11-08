@@ -15,6 +15,8 @@ namespace PjeCalcBackup
         public bool ExportarPjc = true;
         public bool CopiarBanco = true;
         public bool ReabrirNoFinal = true;
+        /// <summary>Exporta só os cálculos novos ou alterados; os outros são copiados do backup anterior.</summary>
+        public bool SoAlterados;
         /// <summary>Cálculos escolhidos por instalação (chave = pasta). Sem entrada = todos.</summary>
         public Dictionary<string, HashSet<string>> Selecao = new Dictionary<string, HashSet<string>>(StringComparer.OrdinalIgnoreCase);
     }
@@ -31,7 +33,7 @@ namespace PjeCalcBackup
     public class ResultadoBackup
     {
         public string Pasta;
-        public int Exportados, Importados, Falhas, Bancos, Conferidos, Esperados, Pulados;
+        public int Exportados, Importados, Falhas, Bancos, Conferidos, Esperados, Pulados, Copiados;
         public string Reaberto;
     }
 
@@ -186,6 +188,48 @@ namespace PjeCalcBackup
             return ok;
         }
 
+        // ============================================================ backup rápido (só o que mudou)
+
+        /// <summary>Último backup desta instalação que guardou as impressões digitais e os arquivos de cada cálculo.</summary>
+        private static RegistroVersao UltimoComAssinaturas(string destino, string pastaInstalacao, out string pastaOperacao, out DateTime data)
+        {
+            pastaOperacao = null; data = DateTime.MinValue;
+            foreach (var r in Historico.Listar(destino))
+            {
+                if (r.Tipo != "backup") continue;
+                var v = r.Versoes.FirstOrDefault(x => string.Equals(x.Pasta, pastaInstalacao, StringComparison.OrdinalIgnoreCase) &&
+                                                      x.Assinaturas != null && x.Arquivos != null && x.Arquivos.Count > 0);
+                if (v == null) continue;
+                pastaOperacao = r.PastaOperacao; data = r.Data;
+                return v;
+            }
+            return null;
+        }
+
+        /// <summary>Guarda no registro do backup a impressão digital e o arquivo de cada cálculo, para o próximo backup rápido.</summary>
+        private static void Registrar(Instalacao inst, RegistroVersao rv, string pastaOperacao, List<string> arquivos)
+        {
+            try
+            {
+                var assin = BancoPjeCalc.Assinaturas(inst); // lida depois da exportação (o PJe-Calc já foi fechado)
+                if (assin == null) return;
+                rv.Assinaturas = new Dictionary<string, string>();
+                rv.Arquivos = new Dictionary<string, string>();
+                foreach (var a in arquivos)
+                {
+                    string num = null;
+                    var m = System.Text.RegularExpressions.Regex.Match(Path.GetFileName(a), "^CALCULO_(\\d+)[_.]", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+                    if (m.Success) num = m.Groups[1].Value;
+                    else { try { num = BancoPjeCalc.LerPjc(a).Numero; } catch { } }
+                    string h;
+                    if (num == null || !assin.TryGetValue(num, out h)) continue;
+                    rv.Assinaturas[num] = h;
+                    rv.Arquivos[num] = a.Substring(pastaOperacao.TrimEnd('\\').Length).TrimStart('\\');
+                }
+            }
+            catch { }
+        }
+
         // ===================================================================== BACKUP
 
         public static ResultadoBackup Executar(List<Instalacao> instalacoes, OpcoesBackup op, IRetornoBackup ui)
@@ -260,18 +304,54 @@ namespace PjeCalcBackup
                     if (!op.ExportarPjc) continue;
                     if (escolhidos != null && escolhidos.Count == 0) { log(TipoLog.Info, "Nenhum cálculo escolhido para exportar nesta versão."); continue; }
 
-                    // 3) exportar e conferir
+                    // 3) exportar (só os novos ou alterados, se pedido) e conferir
                     try
                     {
-                        int antes = res.Exportados;
-                        var arqs = ExportarVersao(inst, pastaV, escolhidos, usarAberta, ui, log, ref nav, res, ini, passo);
-                        rv.Exportados = res.Exportados - antes;
+                        var arqs = new List<string>();
+                        HashSet<string> paraExportar = escolhidos;
+                        if (op.SoAlterados)
+                        {
+                            ui.Progresso(ini + passo * 0.03, "Comparando com o backup anterior…");
+                            var agora = BancoPjeCalc.Assinaturas(inst);
+                            string pastaAnt; DateTime dataAnt;
+                            var anterior = UltimoComAssinaturas(op.Destino, inst.Pasta, out pastaAnt, out dataAnt);
+                            if (agora == null) log(TipoLog.Aviso, "Não consegui comparar com o backup anterior; todos os cálculos escolhidos serão exportados.");
+                            else if (anterior == null) log(TipoLog.Info, "Não há backup anterior desta versão para comparar: todos os cálculos escolhidos serão exportados.");
+                            else
+                            {
+                                paraExportar = new HashSet<string>();
+                                foreach (var c in doBanco)
+                                {
+                                    string a, b, relAnt;
+                                    if (agora.TryGetValue(c.Numero, out a) && anterior.Assinaturas.TryGetValue(c.Numero, out b) && a == b &&
+                                        anterior.Arquivos.TryGetValue(c.Numero, out relAnt) && File.Exists(Path.Combine(pastaAnt, relAnt)))
+                                    {
+                                        string origem = Path.Combine(pastaAnt, relAnt), copia = Path.Combine(pastaV, Path.GetFileName(origem));
+                                        File.Copy(origem, copia, true);
+                                        arqs.Add(copia); rv.Copiados++;
+                                    }
+                                    else paraExportar.Add(c.Numero);
+                                }
+                                res.Copiados += rv.Copiados;
+                                log(TipoLog.Ok, rv.Copiados + " cálculo(s) sem alteração desde o backup de " + dataAnt.ToString("dd/MM/yyyy HH:mm") +
+                                    ": copiados de lá. " + paraExportar.Count + " novo(s) ou alterado(s) para exportar.");
+                            }
+                        }
+                        if (paraExportar == null || paraExportar.Count > 0)
+                        {
+                            int antes = res.Exportados;
+                            arqs.AddRange(ExportarVersao(inst, pastaV, paraExportar, usarAberta, ui, log, ref nav, res, ini, passo));
+                            rv.Exportados = res.Exportados - antes;
+                        }
+                        else log(TipoLog.Info, "Nenhum cálculo novo ou alterado: o PJe-Calc nem precisou ser aberto.");
+
                         if (!ui.Cancelado)
                         {
                             int esp;
                             rv.Conferidos = Conferir(doBanco, arqs, log, out esp);
                             res.Conferidos += rv.Conferidos; res.Esperados += esp;
                             if (rv.Conferidos < esp) res.Falhas++;
+                            Registrar(inst, rv, res.Pasta, arqs);
                         }
                     }
                     catch (OperationCanceledException) { break; }
@@ -288,9 +368,10 @@ namespace PjeCalcBackup
             Reabrir(op.ReabrirNoFinal, fechadasPorNos, res, log);
 
             string resumo = "Backup de " + DateTime.Now.ToString("dd/MM/yyyy HH:mm") + ": " + res.Exportados + " cálculo(s) exportado(s)" +
+                            (res.Copiados > 0 ? " e " + res.Copiados + " sem alteração copiado(s) do backup anterior" : "") +
                             (res.Esperados > 0 ? " (" + res.Conferidos + " de " + res.Esperados + " conferidos)" : "") + ", " +
                             res.Bancos + " banco(s) copiado(s), " + res.Falhas + " falha(s).";
-            reg.Calculos = res.Exportados; reg.Falhas = res.Falhas;
+            reg.Calculos = res.Exportados + res.Copiados; reg.Falhas = res.Falhas;
             Gravar(res.Pasta, rel, resumo, null, reg);
             ui.Progresso(1, resumo);
             return res;

@@ -14,6 +14,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Data;
+using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Markup;
 using System.Windows.Media;
@@ -24,8 +25,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("PJe-Calc Backup")]
 [assembly: AssemblyProduct("PJe-Calc Backup")]
 [assembly: AssemblyDescription("Backup, restauração e migração dos cálculos do PJe-Calc Cidadão (projeto independente, não oficial)")]
-[assembly: AssemblyVersion("1.3.0.0")]
-[assembly: AssemblyFileVersion("1.3.0.0")]
+[assembly: AssemblyVersion("1.3.1.0")]
+[assembly: AssemblyFileVersion("1.3.1.0")]
 
 namespace PjeCalcBackup
 {
@@ -52,6 +53,22 @@ namespace PjeCalcBackup
         [STAThread]
         public static void Main()
         {
+            var args = Environment.GetCommandLineArgs().Skip(1).Select(x => x.ToLowerInvariant()).ToList();
+            // verificação ao entrar no Windows (tarefa do Agendador): sem janela, só uma notificação se houver problema
+            if (args.Contains("--verificar"))
+            {
+                try
+                {
+                    var c = Config.Carregar();
+                    Agendador.Resultado ult;
+                    string msg = Agendador.Problema(c, out ult);
+                    if (msg != null && c.Notificacoes) Avisos.NotificarEsperando("Backup automático do PJe-Calc", msg, false);
+                }
+                catch { }
+                return;
+            }
+            if (args.Contains("--desinstalar")) { Instalador.Desinstalar(); return; }
+
             var app = new Application();
             app.ShutdownMode = ShutdownMode.OnMainWindowClose;
             app.DispatcherUnhandledException += (s, e) =>
@@ -83,6 +100,12 @@ namespace PjeCalcBackup
         {
             config = Config.Carregar();
             Tema.Aplicar(app.Resources, config.Tema, config.Paleta);
+            // bordas finas inteiras em qualquer escala de tela (125%, 150%…): encaixa nos pixels em vez de arredondar o layout
+            var estiloBorda = new Style(typeof(Border)); estiloBorda.Setters.Add(new Setter(UIElement.SnapsToDevicePixelsProperty, true));
+            app.Resources[typeof(Border)] = estiloBorda;
+            // sem o contorno pontilhado de foco nas áreas de rolagem e listas (não são controles que o usuário "aciona")
+            foreach (var t in new[] { typeof(ScrollViewer), typeof(ItemsControl) })
+            { var st = new Style(t); st.Setters.Add(new Setter(FrameworkElement.FocusVisualStyleProperty, null)); app.Resources[t] = st; }
             vm = new JanelaVM(config);
 
             using (var s = Recurso("JanelaPrincipal.xaml"))
@@ -118,6 +141,10 @@ namespace PjeCalcBackup
             A<Button>("btnBaixarAtualizacao").Click += (s, e) => AtualizarAgora();
             A<Button>("btnNovidades").Click += (s, e) => Abrir(novidade != null ? novidade.Url : Atualizacao.UrlProjeto + "/releases/latest");
             Atualizacao.LimparAntigos();
+            ConfigurarInstalacao();
+            ConfigurarTeclado();
+            A<Button>("btnFecharAgenda").Click += (s, e) => { A<Border>("avisoAgenda").Visibility = Visibility.Collapsed; config.AvisoAgendaVisto = DateTime.Now; config.Salvar(); };
+            A<Button>("btnAgendaBackup").Click += (s, e) => { A<Border>("avisoAgenda").Visibility = Visibility.Collapsed; config.AvisoAgendaVisto = DateTime.Now; config.Salvar(); A<RadioButton>("abaBackup").IsChecked = true; };
 
             SystemEvents.UserPreferenceChanged += (s, e) =>
             {
@@ -142,12 +169,173 @@ namespace PjeCalcBackup
             {
                 ProcurarInstalacoes();
                 VerificarLembrete();
+                VerificarAgenda();
+                janela.Focus(); // nenhum botão com foco ao abrir (Enter = Avançar, não "Instalar")
+                OferecerInstalacao();
                 if (Environment.GetCommandLineArgs().Contains("--atualizado"))
                 {
                     A<TextBlock>("txtVersao").Text = "Versão instalada: " + Atualizacao.Atual + " · atualizado agora";
                     Avisar(TipoDialogo.Sucesso, "Atualizado", "O PJe-Calc Backup foi atualizado para a versão " + Atualizacao.Atual + ".");
                 }
                 else VerificarAtualizacao(false);
+            };
+        }
+
+        // ============================================================ instalação
+
+        private void ConfigurarInstalacao()
+        {
+            A<Button>("btnInstalar").Click += (s, e) => Instalar();
+            A<Button>("btnFecharInstalar").Click += (s, e) => { A<Border>("avisoInstalar").Visibility = Visibility.Collapsed; config.NaoOferecerInstalar = true; config.Salvar(); };
+            A<Button>("btnInstalacao").Click += (s, e) =>
+            {
+                if (!Instalador.RodandoInstalado) { Instalar(); return; }
+                if (executando) { Avisar(TipoDialogo.Info, "Aguarde", "Termine a operação em andamento antes."); return; }
+                try { Process.Start(Instalador.Exe, "--desinstalar"); Application.Current.Shutdown(); } catch { }
+            };
+            AtualizarTextoInstalacao();
+            if (Instalador.RodandoInstalado) Instalador.Registrar(); // mantém a versão certa em "Aplicativos instalados"
+        }
+
+        private void AtualizarTextoInstalacao()
+        {
+            bool aqui = Instalador.RodandoInstalado;
+            A<TextBlock>("txtInstalacao").Text = aqui
+                ? "Instalado em " + Instalador.Pasta + ". Aparece em Configurações do Windows → Aplicativos instalados."
+                : "Você está usando o programa direto de " + Path.GetDirectoryName(Assembly.GetEntryAssembly().Location) + ", sem instalar.";
+            A<Button>("btnInstalacao").Content = aqui ? "Desinstalar…" : "Instalar neste computador";
+        }
+
+        /// <summary>Se o programa foi aberto fora da pasta de instalação (ex.: Downloads), oferece instalar.</summary>
+        private void OferecerInstalacao()
+        {
+            var args = Environment.GetCommandLineArgs();
+            if (Instalador.RodandoInstalado)
+            {
+                if (args.Contains("--instalado"))
+                {
+                    // o backup automático passa a usar o programa instalado
+                    Task.Factory.StartNew(() =>
+                    {
+                        try
+                        {
+                            var e = Agendador.Consultar();
+                            if (!Instalador.ModoTeste && e.Existe && !string.Equals(e.Comando, Agendador.ExeConsole(), StringComparison.OrdinalIgnoreCase))
+                                Agendador.Criar(config.AgendaFrequencia, config.AgendaDias, config.AgendaHora, config.AgendaLimpar);
+                        }
+                        catch { }
+                    });
+                    Avisar(TipoDialogo.Sucesso, "Instalado", "O PJe-Calc Backup foi instalado neste computador.\n\nAtalhos: Área de Trabalho e menu Iniciar. " +
+                        "Ele também aparece em Configurações do Windows → Aplicativos instalados, de onde pode ser desinstalado.");
+                }
+                return;
+            }
+            if (config.NaoOferecerInstalar) return;
+            var instalada = Instalador.VersaoInstalada;
+            if (instalada != null && instalada >= Atualizacao.Atual) return; // mesma versão ou mais nova já instalada: não oferece
+            A<TextBlock>("txtInstalar").Text = instalada == null
+                ? "Você está usando o programa direto da pasta onde ele foi baixado. Instale-o neste computador: ganha atalhos na Área de Trabalho e no menu Iniciar, e o backup automático continua funcionando mesmo que este arquivo seja apagado."
+                : "Este é outro arquivo do programa (versão " + Atualizacao.Atual + "); o instalado é a versão " + instalada + ". Quer atualizar a instalação com este?";
+            A<Button>("btnInstalar").Content = instalada == null ? "Instalar" : "Atualizar instalação";
+            A<Border>("avisoInstalar").Visibility = Visibility.Visible;
+        }
+
+        private void Instalar()
+        {
+            if (executando) { Avisar(TipoDialogo.Info, "Aguarde", "Termine a operação em andamento antes de instalar."); return; }
+            try
+            {
+                SalvarConfig();
+                string exe = Instalador.Instalar();
+                Process.Start(new ProcessStartInfo(exe, "--instalado") { WorkingDirectory = Instalador.Pasta });
+                Application.Current.Shutdown();
+            }
+            catch (Exception ex) { Avisar(TipoDialogo.Erro, "Não consegui instalar", ex.Message); }
+        }
+
+        // ============================================================ aviso do backup automático
+
+        private void VerificarAgenda()
+        {
+            Task.Factory.StartNew(() =>
+            {
+                string msg = null; Agendador.Resultado ult = null;
+                try { msg = Agendador.Problema(config, out ult); } catch { }
+                NaTela(() =>
+                {
+                    if (msg == null) return;
+                    A<TextBlock>("txtAgenda").Text = msg;
+                    var rel = A<Button>("btnAgendaRelatorio");
+                    if (ult != null && !ult.Ok && !string.IsNullOrEmpty(ult.Pasta) && Directory.Exists(ult.Pasta))
+                    {
+                        rel.Visibility = Visibility.Visible;
+                        rel.Click += (s, e) => { string r = Path.Combine(ult.Pasta, "relatorio.txt"); Abrir(File.Exists(r) ? r : ult.Pasta); };
+                    }
+                    A<Border>("avisoAgenda").Visibility = Visibility.Visible;
+                });
+            });
+        }
+
+        // ============================================================ teclado
+
+        private Assistente AssistenteVisivel()
+        {
+            if (A<FrameworkElement>("painelBackup").Visibility == Visibility.Visible) return asBk;
+            if (A<FrameworkElement>("painelRestaurar").Visibility == Visibility.Visible) return asRs;
+            if (A<FrameworkElement>("painelMigrar").Visibility == Visibility.Visible) return asMg;
+            return null;
+        }
+
+        private void ConfigurarTeclado()
+        {
+            foreach (var a in new[] { asBk, asRs, asMg })
+            {
+                a.Avancar.ToolTip = "Atalho: Enter";
+                a.Voltar.ToolTip = "Atalho: Esc";
+            }
+            janela.PreviewKeyDown += (s, e) =>
+            {
+                bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
+                var foco = Keyboard.FocusedElement as DependencyObject;
+                if (e.Key == Key.F1) { Abrir(Atualizacao.UrlProjeto + "#como-usar"); e.Handled = true; return; }
+                if (ctrl && !executando)
+                {
+                    string aba = e.Key == Key.D1 || e.Key == Key.NumPad1 ? "abaBackup" : e.Key == Key.D2 || e.Key == Key.NumPad2 ? "abaRestaurar" :
+                                 e.Key == Key.D3 || e.Key == Key.NumPad3 ? "abaMigrar" : e.Key == Key.D4 || e.Key == Key.NumPad4 ? "abaHistorico" :
+                                 e.Key == Key.OemComma ? "abaConfig" : null;
+                    if (aba != null) { A<RadioButton>(aba).IsChecked = true; e.Handled = true; return; }
+                }
+                if (ctrl && e.Key == Key.F)
+                {
+                    TextBox alvo = null;
+                    if (A<FrameworkElement>("painelHistorico").Visibility == Visibility.Visible) alvo = A<TextBox>("txtBuscaHist");
+                    else if (AssistenteVisivel() == asBk && asBk.Atual == 1) alvo = A<TextBox>("txtFiltroBk");
+                    else if (AssistenteVisivel() == asMg && asMg.Atual == 1) alvo = A<TextBox>("txtFiltroMg");
+                    if (alvo != null) { alvo.Focus(); alvo.SelectAll(); e.Handled = true; }
+                    return;
+                }
+                if (e.Key == Key.Escape)
+                {
+                    var busca = A<TextBox>("txtBuscaHist");
+                    if (foco == busca && !string.IsNullOrEmpty(busca.Text)) { busca.Text = ""; e.Handled = true; return; }
+                    var a = AssistenteVisivel();
+                    if (a != null && !a.Executando && a.Voltar.Visibility == Visibility.Visible)
+                    {
+                        a.Voltar.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); e.Handled = true;
+                    }
+                    return;
+                }
+                if (e.Key == Key.Enter && Keyboard.Modifiers == ModifierKeys.None)
+                {
+                    if (foco is ButtonBase) return; // Enter num botão/caixa: o próprio controle decide
+                    var combo = foco as ComboBoxItem;
+                    if (foco is ComboBox && ((ComboBox)foco).IsDropDownOpen || combo != null) return;
+                    var a = AssistenteVisivel();
+                    if (a != null && !a.Executando && a.Avancar.IsEnabled && a.Avancar.Visibility == Visibility.Visible)
+                    {
+                        a.Avancar.RaiseEvent(new RoutedEventArgs(ButtonBase.ClickEvent)); e.Handled = true;
+                    }
+                }
             };
         }
 
@@ -560,6 +748,8 @@ namespace PjeCalcBackup
                         List<string> desm;
                         var desmarcados = config.CalculosDesmarcados != null && config.CalculosDesmarcados.TryGetValue(kv.Key.Pasta, out desm)
                             ? new HashSet<string>(desm) : new HashSet<string>();
+                        // lista que cobre a versão inteira = backup só do banco, não preferência: ignora
+                        if (desmarcados.Count > 0 && kv.Value.All(c => desmarcados.Contains(c.Numero))) desmarcados.Clear();
                         foreach (var c in kv.Value)
                         {
                             var it = ItemDe(c, kv.Key.Pasta, g, null);
@@ -621,10 +811,11 @@ namespace PjeCalcBackup
         private void LembrarDesmarcados()
         {
             if (config.CalculosDesmarcados == null) config.CalculosDesmarcados = new Dictionary<string, List<string>>();
+            if (!config.ExportarPjc) return; // backup só do banco: não muda a preferência
             foreach (var g in vm.CalculosBackup.Where(x => x.EhGrupo))
             {
                 var d = g.Filhos.Where(f => !f.Selecionado).Select(f => f.Numero).ToList();
-                if (d.Count == 0) config.CalculosDesmarcados.Remove(g.PastaInstalacao);
+                if (d.Count == 0 || d.Count == g.Filhos.Count) config.CalculosDesmarcados.Remove(g.PastaInstalacao); // todos desmarcados = só o banco
                 else config.CalculosDesmarcados[g.PastaInstalacao] = d;
             }
         }
@@ -632,7 +823,7 @@ namespace PjeCalcBackup
         private void IniciarBackup()
         {
             var selecionadas = vm.Instalacoes.Where(i => i.Selecionada && i.Selecionavel).Select(i => i.Inst).ToList();
-            var op = new OpcoesBackup { Destino = config.Destino, ExportarPjc = config.ExportarPjc, CopiarBanco = config.CopiarBanco, ReabrirNoFinal = config.ReabrirPjeCalc };
+            var op = new OpcoesBackup { Destino = config.Destino, ExportarPjc = config.ExportarPjc, CopiarBanco = config.CopiarBanco, ReabrirNoFinal = config.ReabrirPjeCalc, SoAlterados = config.BackupRapido };
             foreach (var g in vm.CalculosBackup.Where(x => x.EhGrupo))
                 if (!g.Filhos.All(f => f.Selecionado))
                     op.Selecao[g.PastaInstalacao] = new HashSet<string>(g.Filhos.Where(f => f.Selecionado).Select(f => f.Numero));
@@ -646,7 +837,7 @@ namespace PjeCalcBackup
                 A<TextBlock>("txtTituloBk").Text = ok ? "Backup concluído" : "Backup concluído com falhas";
                 string conf = res.Esperados > 0 ? res.Conferidos + " de " + res.Esperados + " conferidos" : "";
                 Finalizar(ok, ok ? "Backup concluído" : "Backup concluído com falhas",
-                    res.Exportados + " cálculo(s) exportado(s)" + (conf != "" ? " (" + conf + ")" : "") + ", " + res.Bancos + " banco(s) copiado(s)" +
+                    res.Exportados + " cálculo(s) exportado(s)" + (res.Copiados > 0 ? " + " + res.Copiados + " sem alteração" : "") + (conf != "" ? " (" + conf + ")" : "") + ", " + res.Bancos + " banco(s) copiado(s)" +
                     (res.Falhas > 0 ? ", " + res.Falhas + " falha(s)" : "") + ".", res);
                 if (ok && !string.IsNullOrEmpty(config.Limpeza)) NaTela(() => OferecerLimpeza(false));
             });
@@ -793,7 +984,7 @@ namespace PjeCalcBackup
                 try
                 {
                     SalvarConfig();
-                    Agendador.Criar(freq, dias, hora, limpar);
+                    Agendador.Criar(freq, dias, hora, limpar); config.AgendaCriada = DateTime.Now;
                     config.AgendaFrequencia = freq; config.AgendaDias = dias.Count > 0 ? dias : config.AgendaDias; config.AgendaHora = hora; config.AgendaLimpar = limpar;
                     config.Salvar();
                     Avisar(TipoDialogo.Sucesso, "Backup automático ligado", "O backup vai rodar " + Agendador.Descrever(freq, dias, hora) + ", na pasta:\n" + config.Destino);

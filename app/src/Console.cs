@@ -343,6 +343,7 @@ namespace PjeCalcBackup
             if (!Destino()) { Pausa(); return; }
             op.Destino = config.Destino;
             op.CopiarBanco = SimNao("Copiar também o banco de dados completo de cada versão?", true);
+            if (op.ExportarPjc) { op.SoAlterados = SimNao("Backup rápido (exportar só os cálculos novos ou alterados; os outros são copiados do backup anterior)?", config.BackupRapido); config.BackupRapido = op.SoAlterados; config.Salvar(); }
             if (!op.ExportarPjc && !op.CopiarBanco) { Aviso("Nada para fazer."); Pausa(); return; }
             if (op.ExportarPjc && Navegador.Localizar() == null) { Aviso("É preciso ter o Microsoft Edge ou o Google Chrome."); Pausa(); return; }
             if (!AvisoInicial(null, escolhidas)) return;
@@ -351,7 +352,7 @@ namespace PjeCalcBackup
             cancelado = false;
             emOperacao = true; ResultadoBackup r; try { r = Backup.Executar(escolhidas, op, this); } finally { emOperacao = false; }
             FimProgresso();
-            Resultado(r, "Backup concluído: " + r.Exportados + " cálculo(s) exportado(s)" + (r.Esperados > 0 ? " (" + r.Conferidos + " de " + r.Esperados + " conferidos)" : "") + ", " + r.Bancos + " banco(s), " + r.Falhas + " falha(s).");
+            Resultado(r, "Backup concluído: " + r.Exportados + " cálculo(s) exportado(s)" + (r.Copiados > 0 ? " + " + r.Copiados + " sem alteração (copiados)" : "") + (r.Esperados > 0 ? " (" + r.Conferidos + " de " + r.Esperados + " conferidos)" : "") + ", " + r.Bancos + " banco(s), " + r.Falhas + " falha(s).");
             Pausa();
         }
 
@@ -569,7 +570,7 @@ namespace PjeCalcBackup
                 limpar = SimNao("Depois do backup, aplicar a limpeza (" + Limpeza.Descrever(config.Limpeza) + ") sem perguntar?", config.AgendaLimpar);
             try
             {
-                Agendador.Criar(freq, dias, hora, limpar);
+                Agendador.Criar(freq, dias, hora, limpar); config.AgendaCriada = DateTime.Now;
                 config.AgendaFrequencia = freq; config.AgendaDias = dias; config.AgendaHora = hora; config.AgendaLimpar = limpar; config.Salvar();
                 Linha(ConsoleColor.Green, "  √ Backup automático ligado: " + Agendador.Descrever(freq, dias, hora) + ".");
             }
@@ -785,11 +786,13 @@ namespace PjeCalcBackup
                 Console.WriteLine("Backup automático (sem perguntas):");
                 Console.WriteLine("  PJeCalcBackup-Console.exe --backup [--destino \"pasta\"] [--versoes 2.16.0,2.14.0] [--pasta \"C:\\pjecalc-...\"]");
                 Console.WriteLine("                            [--sem-pjc] [--sem-banco] [--nao-reabrir]\n");
-                Console.WriteLine("                            [--agendado] [--limpar]\n");
+                Console.WriteLine("                            [--agendado] [--limpar] [--rapido | --completo]\n");
                 Console.WriteLine("  --pasta     (pode repetir) usa só estas instalações, sem procurar no computador");
                 Console.WriteLine("  --agendado  usado pelo backup automático: respeita as versões desmarcadas no programa, avisa e espera");
                 Console.WriteLine("              2 minutos se o PJe-Calc estiver aberto, e mostra uma notificação do Windows no final");
-                Console.WriteLine("  --limpar    depois do backup, move para a Lixeira os backups antigos (regra das Configurações)\n");
+                Console.WriteLine("  --limpar    depois do backup, move para a Lixeira os backups antigos (regra das Configurações)");
+                Console.WriteLine("  --rapido    exporta só os cálculos novos ou alterados; os outros são copiados do backup anterior");
+                Console.WriteLine("  --completo  exporta todos de novo (sem nenhum dos dois, vale a opção das Configurações)\n");
                 Console.WriteLine("Atualizar o programa (baixa do GitHub e confere o SHA-256):  PJeCalcBackup-Console.exe --atualizar\n");
                 Console.WriteLine("Arrastar arquivos .PJC (ou uma pasta) sobre o programa abre a restauração deles;");
                 Console.WriteLine("arrastar um .zip do banco abre a restauração do banco.\n");
@@ -806,7 +809,8 @@ namespace PjeCalcBackup
                 Destino = valor("--destino") ?? config.Destino,
                 ExportarPjc = !a.Contains("--sem-pjc"),
                 CopiarBanco = !a.Contains("--sem-banco"),
-                ReabrirNoFinal = !a.Contains("--nao-reabrir") && config.ReabrirPjeCalc
+                ReabrirNoFinal = !a.Contains("--nao-reabrir") && config.ReabrirPjeCalc,
+                SoAlterados = a.Contains("--rapido") || (!a.Contains("--completo") && config.BackupRapido)
             };
             Directory.CreateDirectory(op.Destino);
             var pastas = new List<string>();
@@ -825,24 +829,26 @@ namespace PjeCalcBackup
             if (escolhidas.Count == 0)
             {
                 Linha(ConsoleColor.Red, "Nenhuma versão do PJe-Calc encontrada.");
-                if (agendado) Avisos.NotificarEsperando("Backup automático do PJe-Calc", "Nenhuma versão do PJe-Calc foi encontrada.", false);
+                if (agendado) { Agendador.SalvarResultado(false, "nenhuma versão do PJe-Calc encontrada", null); Avisos.NotificarEsperando("Backup automático do PJe-Calc", "Nenhuma versão do PJe-Calc foi encontrada.", false); }
                 return 1;
             }
             Linha(ConsoleColor.White, "Backup de: " + string.Join(", ", escolhidas.Select(i => "PJe-Calc " + i.Versao)) + "  →  " + op.Destino);
             if (agendado && !EsperarPjeCalcLivre(escolhidas))
             {
                 Linha(ConsoleColor.Yellow, "Backup de hoje pulado a pedido do usuário.");
+                if (agendado) Agendador.SalvarResultado(false, "pulado a pedido do usuário", null);
                 return 1;
             }
             if (op.ExportarPjc && Navegador.Localizar() == null) { Linha(ConsoleColor.Yellow, "Sem Edge/Chrome: só o banco de dados será copiado."); op.ExportarPjc = false; }
             emOperacao = true; ResultadoBackup r; try { r = Backup.Executar(escolhidas, op, this); } finally { emOperacao = false; }
             FimProgresso();
             bool ok = r.Falhas == 0;
-            string resumo = r.Exportados + " cálculo(s) exportado(s)" + (r.Esperados > 0 ? " (" + r.Conferidos + " de " + r.Esperados + " conferidos)" : "") + ", " + r.Bancos + " banco(s), " + r.Falhas + " falha(s).";
+            string resumo = r.Exportados + " cálculo(s) exportado(s)" + (r.Copiados > 0 ? " + " + r.Copiados + " sem alteração (copiados)" : "") + (r.Esperados > 0 ? " (" + r.Conferidos + " de " + r.Esperados + " conferidos)" : "") + ", " + r.Bancos + " banco(s), " + r.Falhas + " falha(s).";
             Linha(ok ? ConsoleColor.Green : ConsoleColor.Yellow, (ok ? "OK: " : "COM FALHAS: ") + resumo + " Pasta: " + r.Pasta);
             if (ok && a.Contains("--limpar")) { Console.WriteLine(); FluxoLimpeza(false); }
             if (agendado)
             {
+                Agendador.SalvarResultado(ok, resumo, r.Pasta);
                 if (config.Sons) Avisos.Som(ok);
                 if (config.Notificacoes) Avisos.NotificarEsperando(ok ? "Backup automático concluído" : "Backup automático com falhas", resumo, ok);
             }

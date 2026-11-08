@@ -167,6 +167,106 @@ namespace PjeCalcBackup
                     throw new Exception("O Agendador de Tarefas recusou: " + saida);
             }
             finally { try { File.Delete(tmp); } catch { } }
+            CriarVerificacao();
+        }
+
+        public const string NomeVerificacao = "PJe-Calc Backup automático (verificação)";
+
+        /// <summary>Tarefa extra, ao entrar no Windows: o programa (sem abrir janela) confere se o backup automático
+        /// falhou ou está atrasado e, nesse caso, mostra uma notificação.</summary>
+        private static void CriarVerificacao()
+        {
+            try
+            {
+                string gui = Path.Combine(Path.GetDirectoryName(ExeConsole()), "PJeCalcBackup.exe");
+                if (!File.Exists(gui)) return;
+                string usuario = Environment.UserDomainName + "\\" + Environment.UserName;
+                string xml =
+"<?xml version=\"1.0\" encoding=\"UTF-16\"?>\r\n" +
+"<Task version=\"1.2\" xmlns=\"http://schemas.microsoft.com/windows/2004/02/mit/task\">\r\n" +
+"  <RegistrationInfo><Description>Avisa se o backup automático do PJe-Calc falhou ou não rodou. Criado pelo PJe-Calc Backup.</Description></RegistrationInfo>\r\n" +
+"  <Triggers><LogonTrigger><Enabled>true</Enabled><UserId>" + SecurityElement.Escape(usuario) + "</UserId><Delay>PT3M</Delay></LogonTrigger></Triggers>\r\n" +
+"  <Principals><Principal id=\"Author\"><UserId>" + SecurityElement.Escape(usuario) + "</UserId><LogonType>InteractiveToken</LogonType><RunLevel>LeastPrivilege</RunLevel></Principal></Principals>\r\n" +
+"  <Settings><MultipleInstancesPolicy>IgnoreNew</MultipleInstancesPolicy><DisallowStartIfOnBatteries>false</DisallowStartIfOnBatteries>" +
+"<StopIfGoingOnBatteries>false</StopIfGoingOnBatteries><Enabled>true</Enabled><ExecutionTimeLimit>PT5M</ExecutionTimeLimit></Settings>\r\n" +
+"  <Actions Context=\"Author\"><Exec><Command>" + SecurityElement.Escape(gui) + "</Command><Arguments>--verificar</Arguments></Exec></Actions>\r\n" +
+"</Task>\r\n";
+                string tmp = Path.Combine(Path.GetTempPath(), "pjecalc-backup-verificacao.xml");
+                File.WriteAllText(tmp, xml, Encoding.Unicode);
+                try { string saida; Rodar("/Create /TN \"" + NomeVerificacao + "\" /XML \"" + tmp + "\" /F", out saida); }
+                finally { try { File.Delete(tmp); } catch { } }
+            }
+            catch { }
+        }
+
+        // ---- resultado do último backup automático (gravado pelo modo console)
+
+        public class Resultado
+        {
+            public DateTime Data { get; set; }
+            public bool Ok { get; set; }
+            public string Resumo { get; set; }
+            public string Pasta { get; set; }
+            public DateTime UltimoOk { get; set; }
+        }
+
+        private static string ArquivoResultado
+        {
+            get { return Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), @"PJeCalcBackup\agendado.json"); }
+        }
+
+        public static Resultado LerResultado()
+        {
+            try { if (File.Exists(ArquivoResultado)) return new JavaScriptSerializer().Deserialize<Resultado>(File.ReadAllText(ArquivoResultado)); } catch { }
+            return null;
+        }
+
+        public static void SalvarResultado(bool ok, string resumo, string pasta)
+        {
+            try
+            {
+                var ant = LerResultado();
+                var r = new Resultado { Data = DateTime.Now, Ok = ok, Resumo = resumo, Pasta = pasta, UltimoOk = ok ? DateTime.Now : (ant != null ? ant.UltimoOk : DateTime.MinValue) };
+                Directory.CreateDirectory(Path.GetDirectoryName(ArquivoResultado));
+                File.WriteAllText(ArquivoResultado, new JavaScriptSerializer().Serialize(r));
+            }
+            catch { }
+        }
+
+        /// <summary>Maior intervalo esperado entre dois backups automáticos, em dias.</summary>
+        private static int Intervalo(Config c)
+        {
+            if (c.AgendaFrequencia == "diario") return 1;
+            var idx = Dias.Select((d, i) => c.AgendaDias.Contains(d) ? i : -1).Where(i => i >= 0).ToList();
+            if (idx.Count == 0) return 7;
+            int maior = 0;
+            for (int k = 0; k < idx.Count; k++)
+            {
+                int gap = (idx[(k + 1) % idx.Count] - idx[k] + 7) % 7;
+                maior = Math.Max(maior, gap == 0 ? 7 : gap);
+            }
+            return maior;
+        }
+
+        /// <summary>Problema com o backup automático que vale avisar (ou null): falhou, foi pulado ou está atrasado.</summary>
+        public static string Problema(Config c, out Resultado ultimo)
+        {
+            ultimo = LerResultado();
+            var e = Consultar();
+            if (!e.Existe) return null;
+            if (!e.ExeExiste) return "O backup automático aponta para um programa que não está mais no lugar. Abra ⚙ → Backup automático e clique em \"Ligar / salvar\".";
+            if (ultimo != null && !ultimo.Ok && ultimo.Data > c.AvisoAgendaVisto)
+                return "O backup automático de " + ultimo.Data.ToString("dd/MM 'às' HH:mm") + " não terminou bem: " + (ultimo.Resumo ?? "veja o relatório") ;
+            DateTime referencia = c.AgendaCriada;
+            if (ultimo != null && ultimo.UltimoOk > referencia) referencia = ultimo.UltimoOk;
+            DateTime? manual = null;
+            try { manual = Historico.UltimoBackup(c.Destino); } catch { }
+            if (manual.HasValue && manual.Value > referencia) referencia = manual.Value;
+            if (referencia == DateTime.MinValue) return null;
+            int dias = (int)(DateTime.Now - referencia).TotalDays;
+            if (dias > Intervalo(c) + 1 && referencia > c.AvisoAgendaVisto)
+                return "O último backup foi em " + referencia.ToString("dd/MM/yyyy") + " (há " + dias + " dias). O backup automático não rodou desde então — o computador ficou desligado ou fora da conta na hora marcada?";
+            return null;
         }
 
         /// <summary>Definição da tarefa no formato do Agendador de Tarefas (mesma ordem dos elementos que o Windows exporta).</summary>
@@ -198,6 +298,7 @@ namespace PjeCalcBackup
             string saida;
             if (Consultar().Existe && Rodar("/Delete /TN \"" + Nome + "\" /F", out saida) != 0)
                 throw new Exception("O Agendador de Tarefas recusou: " + saida);
+            try { Rodar("/Delete /TN \"" + NomeVerificacao + "\" /F", out saida); } catch { }
         }
 
         public static Estado Consultar()

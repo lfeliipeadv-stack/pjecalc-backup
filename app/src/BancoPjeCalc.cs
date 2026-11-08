@@ -107,6 +107,64 @@ namespace PjeCalcBackup
             }
         }
 
+        /// <summary>Roda uma consulta numa pasta que já tem a cópia do banco e devolve as linhas (sem o cabeçalho).</summary>
+        private static List<List<string>> Consultar(Instalacao inst, string tmp, string select)
+        {
+            string csv = Path.Combine(tmp, "q" + Guid.NewGuid().ToString("N").Substring(0, 6) + ".csv");
+            string sql = "CALL CSVWRITE('" + csv.Replace("'", "''") + "', '" + select.Replace("'", "''") + "', 'UTF-8', ';')";
+            string h2 = Directory.GetFiles(Path.Combine(inst.Pasta, @"bin\lib"), "h2-*.jar").FirstOrDefault();
+            if (h2 == null || !File.Exists(inst.JavaExe)) throw new Exception("não encontrei o Java/H2 da instalação");
+            var psi = new ProcessStartInfo(inst.JavaExe,
+                "-cp \"" + h2 + "\" org.h2.tools.Shell -url \"jdbc:h2:" + Path.Combine(tmp, "pjecalc") + "\" -user \"" + inst.UsuarioBanco +
+                "\" -password \"" + inst.SenhaBanco + "\" -sql \"" + sql.Replace("\"", "\\\"") + "\"");
+            psi.UseShellExecute = false; psi.CreateNoWindow = true;
+            psi.RedirectStandardOutput = true; psi.RedirectStandardError = true;
+            using (var p = Process.Start(psi))
+            {
+                var o = p.StandardOutput.ReadToEndAsync();
+                var e = p.StandardError.ReadToEndAsync();
+                if (!p.WaitForExit(90000)) { try { p.Kill(); } catch { } throw new Exception("a leitura do banco demorou demais"); }
+                if (!File.Exists(csv)) throw new Exception("consulta recusada: " + (e.Result + o.Result).Trim().Split('\n').FirstOrDefault());
+            }
+            return File.ReadAllLines(csv, Encoding.UTF8).Skip(1).Select(DividirCsv).ToList();
+        }
+
+        /// <summary>
+        /// "Impressão digital" de cada cálculo (número → código). Muda sempre que algo do cálculo é salvo:
+        /// usa o contador de versão do PJe-Calc (IIDVERSAO) e o código da liquidação do cálculo, mais a quantidade
+        /// de linhas e a soma das versões em todas as tabelas ligadas a ele (verbas, histórico salarial, FGTS…).
+        /// Devolve null se não der para calcular (aí o backup exporta tudo, como antes).
+        /// </summary>
+        public static Dictionary<string, string> Assinaturas(Instalacao inst)
+        {
+            if (!File.Exists(inst.ArquivoBanco)) return null;
+            string tmp = Path.Combine(Path.GetTempPath(), "pjecalc-assinatura-" + Guid.NewGuid().ToString("N"));
+            Directory.CreateDirectory(tmp);
+            try
+            {
+                File.Copy(inst.ArquivoBanco, Path.Combine(tmp, "pjecalc.h2.db"));
+                var tabelas = Consultar(inst, tmp,
+                    "SELECT a.TABLE_NAME, (SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS v WHERE v.TABLE_SCHEMA = 'PUBLIC' AND v.TABLE_NAME = a.TABLE_NAME AND v.COLUMN_NAME = 'IIDVERSAO') " +
+                    "FROM INFORMATION_SCHEMA.COLUMNS a WHERE a.TABLE_SCHEMA = 'PUBLIC' AND a.COLUMN_NAME = 'IIDCALCULO' AND a.TABLE_NAME <> 'TBCALCULO' ORDER BY a.TABLE_NAME");
+                var partes = new List<string> { "CAST(c.IIDVERSAO AS VARCHAR)", "COALESCE(c.SCDHASHLIQUIDACAO, '')" };
+                foreach (var t in tabelas)
+                {
+                    if (t.Count < 2 || !Regex.IsMatch(t[0], "^[A-Z0-9_]+$")) continue;
+                    string soma = t[1] != "0" ? "CAST(COALESCE(SUM(t.IIDVERSAO), 0) AS VARCHAR)" : "''";
+                    partes.Add("(SELECT CAST(COUNT(*) AS VARCHAR) || ':' || " + soma + " FROM " + t[0] + " t WHERE t.IIDCALCULO = c.IIDCALCULO)");
+                }
+                var linhas = Consultar(inst, tmp, "SELECT c.IIDCALCULO, " + string.Join(" || '|' || ", partes) + " FROM TBCALCULO c");
+                var r = new Dictionary<string, string>();
+                using (var sha = System.Security.Cryptography.SHA1.Create())
+                    foreach (var l in linhas)
+                        if (l.Count >= 2)
+                            r[l[0]] = BitConverter.ToString(sha.ComputeHash(Encoding.UTF8.GetBytes(l[1]))).Replace("-", "").Substring(0, 20);
+                return r;
+            }
+            catch { return null; }
+            finally { try { Directory.Delete(tmp, true); } catch { } }
+        }
+
         /// <summary>Lista os cálculos ativos da instalação (sem abrir o PJe-Calc).</summary>
         public static List<CalculoInfo> Listar(Instalacao inst)
         {

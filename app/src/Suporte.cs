@@ -32,6 +32,12 @@ namespace PjeCalcBackup
         public bool AbrirPastaAoTerminar { get; set; }
         public bool ReabrirPjeCalc { get; set; }
         public int VersaoConfig { get; set; }
+        // 1.4: exportar só os cálculos novos ou alterados (os outros são copiados do backup anterior)
+        public bool BackupRapido { get; set; }
+        // 1.4: instalação e avisos do backup automático
+        public bool NaoOferecerInstalar { get; set; }
+        public DateTime AvisoAgendaVisto { get; set; }
+        public DateTime AgendaCriada { get; set; }
 
         // 1.3: limpeza de backups antigos ("" = desligada, "q10" = manter os últimos 10, "m6" = apagar os com mais de 6 meses)
         public string Limpeza { get; set; }
@@ -59,6 +65,7 @@ namespace PjeCalcBackup
                     if (c.Desmarcadas == null) c.Desmarcadas = new List<string>();
                     if (string.IsNullOrEmpty(c.Destino)) c.Destino = DestinoPadrao();
                     if (c.VersaoConfig < 2) c.AplicarPadroesNovos();
+                    if (c.VersaoConfig < 3) { c.BackupRapido = true; c.VersaoConfig = 3; }
                     c.CompletarAgenda();
                     if (c.Paleta < 0 || c.Paleta >= PjeCalcBackup.Tema.Paletas.Length) c.Paleta = 0;
                     return c;
@@ -87,7 +94,7 @@ namespace PjeCalcBackup
         private void AplicarPadroesNovos()
         {
             Tema = "Sistema"; Paleta = 0; Sons = true; Notificacoes = true; Lembrete = true; LembreteDias = 7;
-            VerificarAtualizacoes = true; AbrirPastaAoTerminar = false; ReabrirPjeCalc = true; VersaoConfig = 2;
+            VerificarAtualizacoes = true; AbrirPastaAoTerminar = false; ReabrirPjeCalc = true; BackupRapido = true; VersaoConfig = 3;
         }
 
         private static string DestinoPadrao()
@@ -207,7 +214,7 @@ namespace PjeCalcBackup
                 ShowInTaskbar = false,
                 FontFamily = new FontFamily("Segoe UI"),
                 FontSize = 13,
-                UseLayoutRounding = true
+                UseLayoutRounding = false, SnapsToDevicePixels = true
             };
             w.SetResourceReference(Control.BackgroundProperty, "Superficie");
             w.SetResourceReference(Control.ForegroundProperty, "Texto");

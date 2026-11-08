@@ -17,6 +17,9 @@ namespace PjeCalcBackup
         public int Exportados { get; set; }
         public int Conferidos { get; set; }
         public bool BancoCopiado { get; set; }
+        public int Copiados { get; set; }                         // .PJC reaproveitados do backup anterior (sem alteração)
+        public Dictionary<string, string> Assinaturas { get; set; } // nº do cálculo → impressão digital
+        public Dictionary<string, string> Arquivos { get; set; }    // nº do cálculo → .PJC (relativo à pasta da operação)
     }
 
     public class RegistroHistorico

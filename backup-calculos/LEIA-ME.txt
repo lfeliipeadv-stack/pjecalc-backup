@@ -12,7 +12,7 @@ Ele abre o PJeCalcBackup-Console.exe, que tem menus interativos:
   6  Buscar um cálculo nos backups (por nome ou nº do processo)
   7  Planilha dos cálculos (Excel)
   8  Limpar backups antigos (vão para a Lixeira)
-  9  Configurações: pasta, sons, lembrete, limpeza, backup automático e atualização
+  9  Configurações: pasta, sons, lembrete, limpeza, backup automático, atualização e "Sobre e apoie"
 
 Use as setas, Enter, Espaço (marcar) e Esc (voltar).
 
@@ -29,5 +29,5 @@ Agendador de Tarefas do Windows.
 Backup sem perguntas, pela linha de comando:
   PJeCalcBackup-Console.exe --backup [--destino "pasta"] [--versoes 2.16.0,2.14.0]
                             [--pasta "C:\pjecalc-..."] [--sem-pjc] [--sem-banco]
-                            [--nao-reabrir] [--agendado] [--limpar]
+                            [--nao-reabrir] [--agendado] [--limpar] [--rapido | --completo]
   Código de saída: 0 = ok, 1 = houve falhas.  Detalhes: --ajuda

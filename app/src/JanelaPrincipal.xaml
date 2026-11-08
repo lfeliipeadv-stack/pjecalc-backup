@@ -3,7 +3,7 @@
         Title="PJe-Calc Backup" Width="940" Height="840" MinWidth="800" MinHeight="600"
         WindowStartupLocation="CenterScreen" Background="{DynamicResource Fundo}"
         FontFamily="Segoe UI" FontSize="13" Foreground="{DynamicResource Texto}"
-        UseLayoutRounding="True" TextOptions.TextFormattingMode="Display">
+        UseLayoutRounding="False" SnapsToDevicePixels="True" TextOptions.TextFormattingMode="Display">
 
   <Window.TaskbarItemInfo>
     <TaskbarItemInfo x:Name="barraTarefas"/>
@@ -12,6 +12,7 @@
   <Window.Resources>
     <!-- ============================================================ estilos -->
     <Style x:Key="Cartao" TargetType="Border">
+      <Setter Property="SnapsToDevicePixels" Value="True"/>
       <Setter Property="Background" Value="{DynamicResource Superficie}"/>
       <Setter Property="BorderBrush" Value="{DynamicResource Borda}"/>
       <Setter Property="BorderThickness" Value="1"/>
@@ -21,6 +22,7 @@
     </Style>
 
     <Style x:Key="Item" TargetType="Border">
+      <Setter Property="SnapsToDevicePixels" Value="True"/>
       <Setter Property="Background" Value="{DynamicResource SuperficieAlt}"/>
       <Setter Property="BorderBrush" Value="{DynamicResource BordaSuave}"/>
       <Setter Property="BorderThickness" Value="1"/>
@@ -196,24 +198,84 @@
       <Setter Property="VerticalContentAlignment" Value="Center"/>
       <Setter Property="Template">
         <Setter.Value>
+          <!-- estilo Windows 11: caixa 20×20, contorno fino; o ✓ fica por cima da caixa (fora dela), sem risco de corte -->
           <ControlTemplate TargetType="CheckBox">
             <DockPanel Background="Transparent">
-              <Border x:Name="caixa" DockPanel.Dock="Left" Width="18" Height="18" CornerRadius="4" BorderThickness="1.5"
-                      BorderBrush="{DynamicResource BordaControle}" Background="{DynamicResource Superficie}" VerticalAlignment="Center">
-                <Path x:Name="marca" Data="M3,9 L7,13 L15,4" Stroke="{DynamicResource SobrePrimaria}" StrokeThickness="2.2" Visibility="Collapsed"
-                      StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round"/>
-              </Border>
-              <ContentPresenter Margin="8,0,0,0" VerticalAlignment="Center"/>
+              <Grid DockPanel.Dock="Left" Width="20" Height="20" VerticalAlignment="Center">
+                <Border x:Name="caixa" CornerRadius="5" BorderThickness="1"
+                        BorderBrush="{DynamicResource BordaControle}" Background="{DynamicResource SuperficieAlt}"/>
+                <Path x:Name="marca" Data="M5.6,10.3 L8.7,13.3 L14.6,7" Stroke="{DynamicResource SobrePrimaria}" StrokeThickness="1.7"
+                      StrokeEndLineCap="Round" StrokeStartLineCap="Round" StrokeLineJoin="Round" Visibility="Collapsed"/>
+              </Grid>
+              <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center"/>
             </DockPanel>
             <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="caixa" Property="BorderBrush" Value="{DynamicResource TextoSuave}"/>
+                <Setter TargetName="caixa" Property="Background" Value="{DynamicResource PrimariaClara}"/>
+              </Trigger>
               <Trigger Property="IsChecked" Value="True">
                 <Setter TargetName="caixa" Property="Background" Value="{DynamicResource Primaria}"/>
                 <Setter TargetName="caixa" Property="BorderBrush" Value="{DynamicResource Primaria}"/>
                 <Setter TargetName="marca" Property="Visibility" Value="Visible"/>
               </Trigger>
-              <Trigger Property="IsMouseOver" Value="True">
-                <Setter TargetName="caixa" Property="BorderBrush" Value="{DynamicResource Primaria}"/>
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="IsChecked" Value="True"/>
+                  <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter TargetName="caixa" Property="Background" Value="{DynamicResource PrimariaEscura}"/>
+                <Setter TargetName="caixa" Property="BorderBrush" Value="{DynamicResource PrimariaEscura}"/>
+              </MultiTrigger>
+              <Trigger Property="IsEnabled" Value="False">
+                <Setter Property="Opacity" Value="0.45"/>
               </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
+    <!-- interruptor (liga/desliga), usado nas Configurações -->
+    <Style x:Key="Interruptor" TargetType="CheckBox">
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Foreground" Value="{DynamicResource Texto}"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="CheckBox">
+            <DockPanel Background="Transparent">
+              <Grid DockPanel.Dock="Left" Width="40" Height="22" VerticalAlignment="Center">
+                <Border x:Name="trilho" CornerRadius="11" BorderThickness="1"
+                        BorderBrush="{DynamicResource TextoSuave}" Background="{DynamicResource SuperficieAlt}"/>
+                <Ellipse x:Name="botao" Width="14" Height="14" HorizontalAlignment="Left" Margin="4,0,0,0" Fill="{DynamicResource TextoSuave}">
+                  <Ellipse.RenderTransform><TranslateTransform x:Name="desliza" X="0"/></Ellipse.RenderTransform>
+                </Ellipse>
+              </Grid>
+              <ContentPresenter Margin="12,0,0,0" VerticalAlignment="Center"/>
+            </DockPanel>
+            <ControlTemplate.Triggers>
+              <Trigger Property="IsMouseOver" Value="True">
+                <Setter TargetName="trilho" Property="Background" Value="{DynamicResource PrimariaClara}"/>
+              </Trigger>
+              <Trigger Property="IsChecked" Value="True">
+                <Setter TargetName="trilho" Property="Background" Value="{DynamicResource Primaria}"/>
+                <Setter TargetName="trilho" Property="BorderBrush" Value="{DynamicResource Primaria}"/>
+                <Setter TargetName="botao" Property="Fill" Value="{DynamicResource SobrePrimaria}"/>
+                <Trigger.EnterActions>
+                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="desliza" Storyboard.TargetProperty="X" To="18" Duration="0:0:0.12"/></Storyboard></BeginStoryboard>
+                </Trigger.EnterActions>
+                <Trigger.ExitActions>
+                  <BeginStoryboard><Storyboard><DoubleAnimation Storyboard.TargetName="desliza" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.12"/></Storyboard></BeginStoryboard>
+                </Trigger.ExitActions>
+              </Trigger>
+              <MultiTrigger>
+                <MultiTrigger.Conditions>
+                  <Condition Property="IsChecked" Value="True"/>
+                  <Condition Property="IsMouseOver" Value="True"/>
+                </MultiTrigger.Conditions>
+                <Setter TargetName="trilho" Property="Background" Value="{DynamicResource PrimariaEscura}"/>
+                <Setter TargetName="trilho" Property="BorderBrush" Value="{DynamicResource PrimariaEscura}"/>
+              </MultiTrigger>
               <Trigger Property="IsEnabled" Value="False">
                 <Setter Property="Opacity" Value="0.45"/>
               </Trigger>
@@ -470,6 +532,21 @@
           <TextBlock x:Name="txtAtualizacao" VerticalAlignment="Center" TextWrapping="Wrap" Text="Nova versão disponível."/>
         </DockPanel>
       </Border>
+      <Border x:Name="avisoInstalar" Visibility="Collapsed" Background="{DynamicResource PrimariaClara}" BorderBrush="{DynamicResource Primaria}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
+        <DockPanel>
+          <Button x:Name="btnFecharInstalar" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}" ToolTip="Não perguntar de novo"/>
+          <Button x:Name="btnInstalar" DockPanel.Dock="Right" Content="Instalar" Style="{StaticResource BotaoBase}" Padding="12,4"/>
+          <TextBlock x:Name="txtInstalar" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+      </Border>
+      <Border x:Name="avisoAgenda" Visibility="Collapsed" Background="{DynamicResource ErroFundo}" BorderBrush="{DynamicResource Erro}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
+        <DockPanel>
+          <Button x:Name="btnFecharAgenda" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"/>
+          <Button x:Name="btnAgendaBackup" DockPanel.Dock="Right" Content="Fazer backup agora" Style="{StaticResource BotaoBase}" Padding="12,4"/>
+          <Button x:Name="btnAgendaRelatorio" DockPanel.Dock="Right" Content="Ver relatório" Style="{StaticResource BotaoLink}" Margin="0,0,12,0" VerticalAlignment="Center" Visibility="Collapsed"/>
+          <TextBlock x:Name="txtAgenda" VerticalAlignment="Center" Foreground="{DynamicResource Erro}" TextWrapping="Wrap"/>
+        </DockPanel>
+      </Border>
       <Border x:Name="avisoLembrete" Visibility="Collapsed" Background="{DynamicResource AvisoFundo}" BorderBrush="{DynamicResource AvisoBorda}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
         <DockPanel>
           <Button x:Name="btnFecharLembrete" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"/>
@@ -585,6 +662,9 @@
           </CheckBox>
           <CheckBox IsChecked="{Binding CopiarBanco, Mode=TwoWay}">
             <TextBlock><Run FontWeight="SemiBold" Text="Banco de dados completo"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — cópia inteira da versão, conferida após a cópia"/></TextBlock>
+          </CheckBox>
+          <CheckBox IsChecked="{Binding BackupRapido, Mode=TwoWay}" Margin="0,8,0,0">
+            <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Backup rápido"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — exporta só os cálculos novos ou alterados; os que não mudaram são copiados do backup anterior. Cada pasta de backup continua completa."/></TextBlock>
           </CheckBox>
           <TextBlock x:Name="txtResumoBk" Style="{StaticResource Suave}" Margin="0,16,0,0"/>
         </StackPanel>
@@ -897,16 +977,16 @@
         <Border Style="{StaticResource Cartao}">
           <StackPanel>
             <TextBlock Text="Avisos ao terminar" Style="{StaticResource Titulo}"/>
-            <CheckBox IsChecked="{Binding Sons, Mode=TwoWay}" Margin="0,12,0,8">
+            <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding Sons, Mode=TwoWay}" Margin="0,12,0,8">
               <TextBlock><Run FontWeight="SemiBold" Text="Sons"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — som de sucesso ou de erro do próprio Windows"/></TextBlock>
             </CheckBox>
-            <CheckBox IsChecked="{Binding Notificacoes, Mode=TwoWay}" Margin="0,0,0,8">
+            <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding Notificacoes, Mode=TwoWay}" Margin="0,0,0,8">
               <TextBlock><Run FontWeight="SemiBold" Text="Notificação do Windows"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — ex.: “Backup concluído: 12 cálculos”"/></TextBlock>
             </CheckBox>
-            <CheckBox IsChecked="{Binding AbrirPastaAoTerminar, Mode=TwoWay}" Margin="0,0,0,8">
+            <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding AbrirPastaAoTerminar, Mode=TwoWay}" Margin="0,0,0,8">
               <TextBlock><Run FontWeight="SemiBold" Text="Abrir a pasta do backup ao terminar"/></TextBlock>
             </CheckBox>
-            <CheckBox IsChecked="{Binding ReabrirPjeCalc, Mode=TwoWay}">
+            <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding ReabrirPjeCalc, Mode=TwoWay}">
               <TextBlock><Run FontWeight="SemiBold" Text="Reabrir o PJe-Calc no final"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — se ele estava aberto e foi fechado para o backup"/></TextBlock>
             </CheckBox>
           </StackPanel>
@@ -926,7 +1006,7 @@
                 <ComboBoxItem Content="15 dias" Tag="15"/>
                 <ComboBoxItem Content="30 dias" Tag="30"/>
               </ComboBox>
-              <CheckBox IsChecked="{Binding Lembrete, Mode=TwoWay}">
+              <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding Lembrete, Mode=TwoWay}">
                 <TextBlock><Run FontWeight="SemiBold" Text="Lembrete de backup"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — avisar ao abrir o programa quando o último backup passar de"/></TextBlock>
               </CheckBox>
             </DockPanel>
@@ -953,7 +1033,7 @@
               <TextBlock Text="Horário" FontWeight="SemiBold" VerticalAlignment="Center" Margin="0,0,10,0"/>
               <TextBox x:Name="txtAgHora" Style="{StaticResource CaixaTexto}" Width="80" HorizontalAlignment="Left" Tag="18:00"/>
             </DockPanel>
-            <CheckBox x:Name="chkAgLimpar" Margin="0,12,0,0">
+            <CheckBox x:Name="chkAgLimpar" Style="{StaticResource Interruptor}" Margin="0,12,0,0">
               <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Depois do backup automático, aplicar a limpeza de backups antigos"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — sem perguntar; vão para a Lixeira"/></TextBlock>
             </CheckBox>
             <TextBlock Style="{StaticResource Suave}" Margin="0,10,0,0" TextWrapping="Wrap"
@@ -971,7 +1051,7 @@
         <Border Style="{StaticResource Cartao}">
           <StackPanel>
             <TextBlock Text="Atualizações" Style="{StaticResource Titulo}"/>
-            <CheckBox IsChecked="{Binding VerificarAtualizacoes, Mode=TwoWay}" Margin="0,12,0,10">
+            <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding VerificarAtualizacoes, Mode=TwoWay}" Margin="0,12,0,10">
               <TextBlock><Run FontWeight="SemiBold" Text="Verificar se há versão nova ao abrir"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — consulta só a página do projeto no GitHub; nenhum dado seu é enviado"/></TextBlock>
             </CheckBox>
             <DockPanel>
@@ -979,6 +1059,26 @@
               <Button x:Name="btnVerificarAgora" DockPanel.Dock="Right" Content="Verificar agora" Style="{StaticResource BotaoBase}"/>
               <TextBlock x:Name="txtVersao" VerticalAlignment="Center" Style="{StaticResource Suave}"/>
             </DockPanel>
+            <DockPanel Margin="0,12,0,0">
+              <Button x:Name="btnInstalacao" DockPanel.Dock="Right" Content="Instalar…" Style="{StaticResource BotaoBase}" Margin="8,0,0,0"/>
+              <TextBlock x:Name="txtInstalacao" VerticalAlignment="Center" TextWrapping="Wrap" Style="{StaticResource Suave}"/>
+            </DockPanel>
+          </StackPanel>
+        </Border>
+
+        <Border Style="{StaticResource Cartao}">
+          <StackPanel>
+            <TextBlock Text="Atalhos do teclado" Style="{StaticResource Titulo}"/>
+            <Grid Margin="0,10,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+              <TextBlock Grid.Row="0" Text="Enter" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="0" Grid.Column="1" Text="Avançar / Concluir a etapa" Style="{StaticResource Suave}" Margin="0,2"/>
+              <TextBlock Grid.Row="1" Text="Esc" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="1" Grid.Column="1" Text="Voltar uma etapa (ou limpar a busca)" Style="{StaticResource Suave}" Margin="0,2"/>
+              <TextBlock Grid.Row="2" Text="Ctrl + F" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="2" Grid.Column="1" Text="Ir para o filtro / a busca da tela atual" Style="{StaticResource Suave}" Margin="0,2"/>
+              <TextBlock Grid.Row="3" Text="Ctrl + 1 a 4" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="3" Grid.Column="1" Text="Backup, Restaurar, Migrar, Histórico" Style="{StaticResource Suave}" Margin="0,2"/>
+              <TextBlock Grid.Row="4" Text="Ctrl + ," FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="4" Grid.Column="1" Text="Configurações (engrenagem)" Style="{StaticResource Suave}" Margin="0,2"/>
+              <TextBlock Grid.Row="5" Text="F1" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="5" Grid.Column="1" Text="Ajuda (página do projeto)" Style="{StaticResource Suave}" Margin="0,2"/>
+            </Grid>
           </StackPanel>
         </Border>
 

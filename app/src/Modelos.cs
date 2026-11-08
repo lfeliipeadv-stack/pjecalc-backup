@@ -280,6 +280,7 @@ namespace PjeCalcBackup
         public string Destino { get { return c.Destino; } set { c.Destino = value; Avisar("Destino"); } }
         public bool ExportarPjc { get { return c.ExportarPjc; } set { c.ExportarPjc = value; Avisar("ExportarPjc"); } }
         public bool CopiarBanco { get { return c.CopiarBanco; } set { c.CopiarBanco = value; Avisar("CopiarBanco"); } }
+        public bool BackupRapido { get { return c.BackupRapido; } set { c.BackupRapido = value; Avisar("BackupRapido"); } }
         public bool Sons { get { return c.Sons; } set { c.Sons = value; Avisar("Sons"); } }
         public bool Notificacoes { get { return c.Notificacoes; } set { c.Notificacoes = value; Avisar("Notificacoes"); } }
         public bool Lembrete { get { return c.Lembrete; } set { c.Lembrete = value; Avisar("Lembrete"); } }
