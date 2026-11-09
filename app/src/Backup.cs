@@ -206,6 +206,22 @@ namespace PjeCalcBackup
             return null;
         }
 
+        /// <summary>
+        /// O arquivo guardado no backup anterior é mesmo deste cálculo? O número sozinho não basta: depois de
+        /// mudar a numeração (aba Numeração) ou de restaurar um banco antigo, o mesmo número pode
+        /// pertencer a outro cálculo. Na dúvida, devolve false e o cálculo é exportado de novo.
+        /// </summary>
+        private static bool MesmoCalculo(CalculoInfo c, string arquivo)
+        {
+            try
+            {
+                var i = BancoPjeCalc.LerPjc(arquivo);
+                return i.Numero == c.Numero && i.Chave == c.Chave &&
+                       (string.IsNullOrEmpty(i.Criacao) || string.IsNullOrEmpty(c.Criacao) || i.Criacao == c.Criacao);
+            }
+            catch { return false; }
+        }
+
         /// <summary>Guarda no registro do backup a impressão digital e o arquivo de cada cálculo, para o próximo backup rápido.</summary>
         private static void Registrar(Instalacao inst, RegistroVersao rv, string pastaOperacao, List<string> arquivos)
         {
@@ -324,7 +340,8 @@ namespace PjeCalcBackup
                                 {
                                     string a, b, relAnt;
                                     if (agora.TryGetValue(c.Numero, out a) && anterior.Assinaturas.TryGetValue(c.Numero, out b) && a == b &&
-                                        anterior.Arquivos.TryGetValue(c.Numero, out relAnt) && File.Exists(Path.Combine(pastaAnt, relAnt)))
+                                        anterior.Arquivos.TryGetValue(c.Numero, out relAnt) && File.Exists(Path.Combine(pastaAnt, relAnt)) &&
+                                        MesmoCalculo(c, Path.Combine(pastaAnt, relAnt)))
                                     {
                                         string origem = Path.Combine(pastaAnt, relAnt), copia = Path.Combine(pastaV, Path.GetFileName(origem));
                                         File.Copy(origem, copia, true);

@@ -25,8 +25,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("PJe-Calc Backup")]
 [assembly: AssemblyProduct("PJe-Calc Backup")]
 [assembly: AssemblyDescription("Backup, restauração e migração dos cálculos do PJe-Calc Cidadão (projeto independente, não oficial)")]
-[assembly: AssemblyVersion("1.3.2.0")]
-[assembly: AssemblyFileVersion("1.3.2.0")]
+[assembly: AssemblyVersion("1.4.0.0")]
+[assembly: AssemblyFileVersion("1.4.0.0")]
 
 namespace PjeCalcBackup
 {
@@ -40,6 +40,7 @@ namespace PjeCalcBackup
         private Atualizacao.Novidade novidade;
 
         private Assistente asBk, asRs, asMg;
+        private PainelNumeracao numeracao;
         private readonly Dictionary<string, List<CalculoInfo>> cacheCalculos = new Dictionary<string, List<CalculoInfo>>(StringComparer.OrdinalIgnoreCase);
         private string selecaoBkCarregada = "";
 
@@ -128,6 +129,10 @@ namespace PjeCalcBackup
             ConfigurarRestaurar();
             ConfigurarMigrar();
             ConfigurarHistorico();
+            // aba Numeração: enquanto muda o banco, as outras abas ficam travadas (como num backup)
+            numeracao = new PainelNumeracao(janela, config,
+                ocupado => { executando = ocupado; TravarAbas(ocupado, null); },
+                () => { indiceBusca = null; AtualizarEstados(); });
             ConfigurarConfiguracoes();
 
             A<Button>("lnkGithub").Click += (s, e) => Abrir(Atualizacao.UrlProjeto);
@@ -153,6 +158,12 @@ namespace PjeCalcBackup
 
             janela.Closing += (s, e) =>
             {
+                if (numeracao != null && numeracao.Ocupado)
+                {
+                    e.Cancel = true;
+                    Avisar(TipoDialogo.Info, "Aguarde", "Uma mudança na numeração está em andamento. Feche o programa quando ela terminar.");
+                    return;
+                }
                 if (executando)
                 {
                     e.Cancel = true;
@@ -298,17 +309,19 @@ namespace PjeCalcBackup
                 bool ctrl = (Keyboard.Modifiers & ModifierKeys.Control) != 0;
                 var foco = Keyboard.FocusedElement as DependencyObject;
                 if (e.Key == Key.F1) { Abrir(Atualizacao.UrlProjeto + "#como-usar"); e.Handled = true; return; }
+                if (e.Key == Key.F5 && A<FrameworkElement>("painelNumeracao").Visibility == Visibility.Visible) { numeracao.Recarregar(); e.Handled = true; return; }
                 if (ctrl && !executando)
                 {
                     string aba = e.Key == Key.D1 || e.Key == Key.NumPad1 ? "abaBackup" : e.Key == Key.D2 || e.Key == Key.NumPad2 ? "abaRestaurar" :
                                  e.Key == Key.D3 || e.Key == Key.NumPad3 ? "abaMigrar" : e.Key == Key.D4 || e.Key == Key.NumPad4 ? "abaHistorico" :
-                                 e.Key == Key.OemComma ? "abaConfig" : null;
+                                 e.Key == Key.D5 || e.Key == Key.NumPad5 ? "abaNumeracao" : e.Key == Key.OemComma ? "abaConfig" : null;
                     if (aba != null) { A<RadioButton>(aba).IsChecked = true; e.Handled = true; return; }
                 }
                 if (ctrl && e.Key == Key.F)
                 {
                     TextBox alvo = null;
                     if (A<FrameworkElement>("painelHistorico").Visibility == Visibility.Visible) alvo = A<TextBox>("txtBuscaHist");
+                    else if (A<FrameworkElement>("painelNumeracao").Visibility == Visibility.Visible && A<FrameworkElement>("nuCartaoNumeros").Visibility == Visibility.Visible) alvo = A<TextBox>("nuFiltro");
                     else if (AssistenteVisivel() == asBk && asBk.Atual == 1) alvo = A<TextBox>("txtFiltroBk");
                     else if (AssistenteVisivel() == asMg && asMg.Atual == 1) alvo = A<TextBox>("txtFiltroMg");
                     if (alvo != null) { alvo.Focus(); alvo.SelectAll(); e.Handled = true; }
@@ -318,6 +331,8 @@ namespace PjeCalcBackup
                 {
                     var busca = A<TextBox>("txtBuscaHist");
                     if (foco == busca && !string.IsNullOrEmpty(busca.Text)) { busca.Text = ""; e.Handled = true; return; }
+                    var filtroNu = A<TextBox>("nuFiltro");
+                    if (foco == filtroNu && !string.IsNullOrEmpty(filtroNu.Text)) { filtroNu.Text = ""; e.Handled = true; return; }
                     var a = AssistenteVisivel();
                     if (a != null && !a.Executando && a.Voltar.Visibility == Visibility.Visible)
                     {
@@ -416,6 +431,7 @@ namespace PjeCalcBackup
         {
             Tema.Aplicar(Application.Current.Resources, config.Tema, config.Paleta);
             foreach (var i in vm.Instalacoes) i.AtualizarCores();
+            if (numeracao != null) numeracao.AtualizarCores();
             var h = vm.Historico.ToList(); vm.Historico.Clear(); foreach (var r in h) vm.Historico.Add(r);
             foreach (var log in new[] { vm.LogBackup, vm.LogRestaurar, vm.LogMigrar })
             {
@@ -428,8 +444,8 @@ namespace PjeCalcBackup
 
         private void ConfigurarAbas()
         {
-            var abas = new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaConfig" };
-            var paineis = new[] { "painelBackup", "painelRestaurar", "painelMigrar", "painelHistorico", "painelConfig" };
+            var abas = new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaNumeracao", "abaConfig" };
+            var paineis = new[] { "painelBackup", "painelRestaurar", "painelMigrar", "painelHistorico", "painelNumeracao", "painelConfig" };
             for (int i = 0; i < abas.Length; i++)
             {
                 int k = i;
@@ -438,13 +454,15 @@ namespace PjeCalcBackup
                     for (int j = 0; j < paineis.Length; j++)
                         A<FrameworkElement>(paineis[j]).Visibility = j == k ? Visibility.Visible : Visibility.Collapsed;
                     if (abas[k] == "abaHistorico") CarregarHistorico();
+                    if (abas[k] == "abaNumeracao" && numeracao != null) numeracao.Ativar();
+                    if (numeracao != null) numeracao.AtualizarFaixa();
                 };
             }
         }
 
         private void TravarAbas(bool travar, string excetoPainel)
         {
-            foreach (var a in new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaConfig" })
+            foreach (var a in new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaNumeracao", "abaConfig" })
             {
                 var r = A<RadioButton>(a);
                 r.IsEnabled = !travar || r.IsChecked == true;
@@ -520,6 +538,8 @@ namespace PjeCalcBackup
                         alvo.TextoCalculos = l == null ? "" : (l.Count == 1 ? "1 cálculo" : l.Count + " cálculos");
                     }));
                 }
+                // depois de contar: alguma versão ainda reserva 32 números? (faixa no topo)
+                if (!cts.IsCancellationRequested) NaTela(() => numeracao.VerificarReservas());
             }, TaskCreationOptions.LongRunning);
         }
 
@@ -548,6 +568,7 @@ namespace PjeCalcBackup
                         alvo.TextoCalculos = l == null ? "" : (l.Count == 1 ? "1 cálculo" : l.Count + " cálculos");
                     });
                 }
+                NaTela(() => numeracao.VerificarReservas());
             });
         }
 

@@ -496,6 +496,37 @@
     <DataTemplate x:Key="ModeloVersaoCombo">
       <TextBlock><Run FontWeight="SemiBold" Text="{Binding Titulo, Mode=OneWay}"/><Run Foreground="{DynamicResource TextoSuave}" Text="{Binding PastaEntreParenteses, Mode=OneWay}"/></TextBlock>
     </DataTemplate>
+    <!-- aba Numeração: uma linha da lista (nº atual → novo nº, reclamante e processo) -->
+    <DataTemplate x:Key="ModeloLinhaNumeracao">
+      <Border Style="{StaticResource Item}" Background="{Binding Fundo}" BorderBrush="{Binding Contorno}" Margin="0,0,8,4" Padding="12,3">
+        <Grid>
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="64"/>
+            <ColumnDefinition Width="26"/>
+            <ColumnDefinition Width="92"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="92"/>
+          </Grid.ColumnDefinitions>
+          <TextBlock Text="{Binding NumeroTexto}" FontSize="15" FontWeight="SemiBold" VerticalAlignment="Center"/>
+          <TextBlock Grid.Column="1" Text="→" Foreground="{DynamicResource TextoSuave}" FontSize="14" VerticalAlignment="Center"/>
+          <TextBox Grid.Column="2" Style="{StaticResource CaixaTexto}" Text="{Binding NovoTexto, UpdateSourceTrigger=PropertyChanged}"
+                   Width="78" MinHeight="28" Padding="6,1" HorizontalAlignment="Left" FontSize="14" FontWeight="SemiBold" MaxLength="9"
+                   IsEnabled="{Binding Editavel}" AutomationProperties.Name="{Binding NomeCampo}" ToolTip="Novo número deste cálculo"/>
+          <StackPanel Grid.Column="3" VerticalAlignment="Center" Margin="10,0,10,0">
+            <DockPanel>
+              <Border DockPanel.Dock="Right" Visibility="{Binding VisExcluido}" CornerRadius="9" Padding="8,1" Margin="8,0,0,0" VerticalAlignment="Center" Background="{DynamicResource NeutroFundo}"
+                      ToolTip="Excluído no PJe-Calc: não aparece na lista dele, mas continua no banco e ocupa o número.">
+                <TextBlock Text="excluído" FontSize="11" FontWeight="SemiBold" Foreground="{DynamicResource Neutro}"/>
+              </Border>
+              <TextBlock Text="{Binding Titulo}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+            </DockPanel>
+            <TextBlock Text="{Binding Detalhe}" Foreground="{DynamicResource TextoSuave}" FontSize="12" TextTrimming="CharacterEllipsis"/>
+          </StackPanel>
+          <TextBlock Grid.Column="4" Text="{Binding CriacaoTexto}" Foreground="{DynamicResource TextoSuave}" FontSize="12"
+                     VerticalAlignment="Center" HorizontalAlignment="Right" ToolTip="Data de criação do cálculo"/>
+        </Grid>
+      </Border>
+    </DataTemplate>
   </Window.Resources>
 
   <Grid>
@@ -547,6 +578,15 @@
           <TextBlock x:Name="txtAgenda" VerticalAlignment="Center" Foreground="{DynamicResource Erro}" TextWrapping="Wrap"/>
         </DockPanel>
       </Border>
+      <!-- alguma versão reserva 32 números: a numeração pode pular -->
+      <Border x:Name="avisoNumeracao" Visibility="Collapsed" Background="{DynamicResource PrimariaClara}" BorderBrush="{DynamicResource Primaria}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
+        <DockPanel>
+          <Button x:Name="btnFecharNumeracao" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"
+                  ToolTip="Não avisar mais sobre esta versão" AutomationProperties.Name="Fechar aviso da numeração"/>
+          <Button x:Name="btnVerNumeracao" DockPanel.Dock="Right" Content="Ver e corrigir" Style="{StaticResource BotaoBase}" Padding="12,4"/>
+          <TextBlock x:Name="txtAvisoNumeracao" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+      </Border>
       <Border x:Name="avisoLembrete" Visibility="Collapsed" Background="{DynamicResource AvisoFundo}" BorderBrush="{DynamicResource AvisoBorda}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
         <DockPanel>
           <Button x:Name="btnFecharLembrete" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"/>
@@ -585,6 +625,8 @@
       <RadioButton x:Name="abaRestaurar" GroupName="abas" Style="{StaticResource Aba}" Content="Restaurar"/>
       <RadioButton x:Name="abaMigrar" GroupName="abas" Style="{StaticResource Aba}" Content="Migrar entre versões"/>
       <RadioButton x:Name="abaHistorico" GroupName="abas" Style="{StaticResource Aba}" Content="Histórico"/>
+      <RadioButton x:Name="abaNumeracao" GroupName="abas" Style="{StaticResource Aba}" Content="Numeração"
+                   ToolTip="Reserva de números e mudança do número dos cálculos"/>
     </DockPanel>
 
     <!-- ================================================================ BACKUP -->
@@ -956,6 +998,143 @@
       </DockPanel>
     </Border>
 
+    <!-- ============================================================= NUMERAÇÃO -->
+    <Grid x:Name="painelNumeracao" Grid.Row="3" Margin="22,10,22,6" Visibility="Collapsed">
+      <Grid.RowDefinitions>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="Auto"/>
+        <RowDefinition Height="*"/>
+        <RowDefinition Height="Auto"/>
+      </Grid.RowDefinitions>
+
+      <!-- versão, aviso e última mudança -->
+      <StackPanel Grid.Row="0">
+        <DockPanel>
+          <Button x:Name="nuRecarregar" DockPanel.Dock="Right" Content="Atualizar" Style="{StaticResource BotaoBase}" Margin="10,0,0,0" ToolTip="Ler o banco de novo (F5)"/>
+          <Border x:Name="nuPilula" DockPanel.Dock="Right" CornerRadius="10" Padding="10,3" Margin="10,0,0,0" VerticalAlignment="Center" Background="{DynamicResource NeutroFundo}" Visibility="Collapsed">
+            <TextBlock x:Name="nuEstado" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource Neutro}"/>
+          </Border>
+          <TextBlock DockPanel.Dock="Left" Text="Versão do PJe-Calc:" VerticalAlignment="Center" FontWeight="SemiBold" Margin="0,0,10,0"/>
+          <ComboBox x:Name="nuVersao" ItemsSource="{Binding InstalacoesComBanco}" ItemTemplate="{StaticResource ModeloVersaoCombo}" MinHeight="34"
+                    AutomationProperties.Name="Versão do PJe-Calc para a numeração"/>
+        </DockPanel>
+        <Border x:Name="nuAvisoBanco" Background="{DynamicResource AvisoFundo}" BorderBrush="{DynamicResource AvisoBorda}" BorderThickness="1" CornerRadius="8" Padding="14,6" Margin="0,8,0,0"
+                ToolTip="Antes de cada mudança, o banco atual é guardado na pasta de backups. Tudo é feito numa cópia do banco, e ela só substitui o original se a conferência passar.">
+          <DockPanel>
+            <Button x:Name="nuFecharAviso" DockPanel.Dock="Right" Content="Entendi" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" FontSize="12"
+                    ToolTip="Recolher este aviso (ele continua na confirmação de cada mudança)"/>
+            <TextBlock Foreground="{DynamicResource Aviso}" TextWrapping="Wrap" FontSize="12"
+                       Text="Esta aba muda o banco de dados do PJe-Calc, o que não é uma função oficial dele. Antes, guarda uma cópia do banco e confere tudo; dá para desfazer."/>
+          </DockPanel>
+        </Border>
+        <Border x:Name="nuFaixaUltima" Visibility="Collapsed" Background="{DynamicResource Superficie}" BorderBrush="{DynamicResource Borda}" BorderThickness="1" CornerRadius="8" Padding="14,5" Margin="0,8,0,0">
+          <DockPanel>
+            <Button x:Name="nuDesfazer" DockPanel.Dock="Right" Content="Desfazer esta mudança…" Style="{StaticResource BotaoBase}" Padding="10,3" Margin="12,0,0,0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="nuUltima" Style="{StaticResource Suave}" VerticalAlignment="Center" FontSize="12"/>
+          </DockPanel>
+        </Border>
+      </StackPanel>
+
+      <!-- mensagem (lendo, sem versões, erro) -->
+      <Border x:Name="nuMensagem" Grid.Row="1" Grid.RowSpan="3" Style="{StaticResource Cartao}" VerticalAlignment="Top" Margin="0,10,0,0" Visibility="Collapsed">
+        <StackPanel>
+          <TextBlock x:Name="nuMensagemTitulo" Style="{StaticResource Titulo}"/>
+          <TextBlock x:Name="nuMensagemTexto" Style="{StaticResource Suave}" Margin="0,6,0,0"/>
+        </StackPanel>
+      </Border>
+
+      <!-- reserva de números -->
+      <Border x:Name="nuCartaoReserva" Grid.Row="1" Style="{StaticResource Cartao}" Visibility="Collapsed" Padding="16,10" Margin="0,10,0,10">
+        <DockPanel>
+          <Button x:Name="nuReserva" DockPanel.Dock="Right" Content="Reservar 1 número por vez" Style="{StaticResource BotaoBase}" VerticalAlignment="Center" Margin="16,0,0,0"/>
+          <Grid DockPanel.Dock="Left" Width="30" Height="30" VerticalAlignment="Top" Margin="0,1,12,0">
+            <Ellipse x:Name="nuCirculoReserva" Fill="{DynamicResource AvisoFundo}"/>
+            <TextBlock x:Name="nuSimboloReserva" Text="!" FontSize="15" FontWeight="Bold" FontFamily="Segoe UI Symbol" HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Aviso}"/>
+          </Grid>
+          <StackPanel>
+            <TextBlock x:Name="nuReservaTitulo" Style="{StaticResource Titulo}" FontSize="15"/>
+            <TextBlock x:Name="nuReservaTexto" Style="{StaticResource Suave}" Margin="0,2,0,0" FontSize="12"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+
+      <!-- números dos cálculos -->
+      <Border x:Name="nuCartaoNumeros" Grid.Row="2" Style="{StaticResource Cartao}" Visibility="Collapsed" Padding="16,12,8,10">
+        <DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="0,0,8,0">
+            <Button x:Name="nuDesfazerEdicao" DockPanel.Dock="Right" Content="Desfazer edição" Style="{StaticResource BotaoBase}" Margin="8,0,0,0" VerticalAlignment="Top"/>
+            <ComboBox x:Name="nuOrdem" DockPanel.Dock="Right" Width="186" Margin="6,0,0,0" VerticalAlignment="Top" MinHeight="34"
+                      AutomationProperties.Name="Ordem da sequência" ToolTip="Em que ordem os números 1, 2, 3… são distribuídos"/>
+            <Button x:Name="nuSequencia" DockPanel.Dock="Right" Content="Colocar em sequência" Style="{StaticResource BotaoBase}" VerticalAlignment="Top"
+                    ToolTip="Os cálculos que aparecem no PJe-Calc ficam 1, 2, 3… na ordem escolhida ao lado; os excluídos vêm depois. Vale para todos, mesmo os escondidos pelo filtro."/>
+            <StackPanel>
+              <TextBlock Style="{StaticResource Titulo}" FontSize="15" Text="Número dos cálculos"/>
+              <TextBlock x:Name="nuNumeros" Style="{StaticResource Suave}" Margin="0,2,0,0" FontSize="12"/>
+            </StackPanel>
+          </DockPanel>
+          <DockPanel DockPanel.Dock="Top" Margin="0,10,8,0">
+            <TextBlock x:Name="nuContagem" DockPanel.Dock="Right" Style="{StaticResource Suave}" FontSize="12" VerticalAlignment="Center" Margin="10,0,0,0"/>
+            <TextBox x:Name="nuFiltro" Style="{StaticResource CaixaTexto}" Tag="🔍  Filtrar por nome, número ou processo… (Ctrl + F)" MinHeight="30"
+                     AutomationProperties.Name="Filtrar cálculos da numeração"/>
+          </DockPanel>
+          <Border x:Name="nuAvisoBloqueio" DockPanel.Dock="Top" Visibility="Collapsed" Background="{DynamicResource NeutroFundo}" CornerRadius="8" Padding="12,8" Margin="0,10,8,0">
+            <TextBlock x:Name="nuBloqueio" TextWrapping="Wrap" Foreground="{DynamicResource TextoSuave}"/>
+          </Border>
+          <Grid DockPanel.Dock="Top" Margin="13,10,22,4">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="64"/><ColumnDefinition Width="26"/><ColumnDefinition Width="92"/><ColumnDefinition Width="*"/><ColumnDefinition Width="92"/>
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Nº atual" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextoSuave}"/>
+            <TextBlock Grid.Column="2" Text="Novo nº" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextoSuave}"/>
+            <TextBlock Grid.Column="3" Text="Reclamante × reclamado · processo" Margin="10,0,0,0" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextoSuave}"/>
+            <TextBlock Grid.Column="4" Text="Criado em" HorizontalAlignment="Right" FontSize="12" FontWeight="SemiBold" Foreground="{DynamicResource TextoSuave}"/>
+          </Grid>
+          <!-- resumo, reserva e aplicar (no próprio cartão, para sobrar espaço para a lista) -->
+          <DockPanel DockPanel.Dock="Bottom" Margin="0,8,8,0">
+            <Button x:Name="nuAplicar" DockPanel.Dock="Right" Content="Aplicar mudanças…" Style="{StaticResource BotaoPrimario}" IsEnabled="False" VerticalAlignment="Bottom" Margin="12,0,0,0"/>
+            <StackPanel VerticalAlignment="Center">
+              <TextBlock x:Name="nuErros" Foreground="{DynamicResource Erro}" TextWrapping="Wrap" Visibility="Collapsed" Margin="0,0,0,4"/>
+              <TextBlock x:Name="nuResumo" Style="{StaticResource Suave}"/>
+              <CheckBox x:Name="nuChkReserva" IsChecked="True" Margin="0,6,0,0">
+                <TextBlock TextWrapping="Wrap" FontSize="12" Text="Também passar a reservar 1 número por vez (recomendado: a numeração não pula mais)"/>
+              </CheckBox>
+            </StackPanel>
+          </DockPanel>
+          <!-- sem virtualização: Enter/↓ passam de um campo para o outro em todas as linhas -->
+          <ItemsControl x:Name="nuLista" ItemTemplate="{StaticResource ModeloLinhaNumeracao}" Focusable="False" KeyboardNavigation.TabNavigation="Continue">
+            <ItemsControl.Template>
+              <ControlTemplate TargetType="ItemsControl">
+                <ScrollViewer x:Name="nuRolagemLista" CanContentScroll="False" Focusable="False" VerticalScrollBarVisibility="Auto">
+                  <ItemsPresenter/>
+                </ScrollViewer>
+              </ControlTemplate>
+            </ItemsControl.Template>
+          </ItemsControl>
+        </DockPanel>
+      </Border>
+
+      <!-- andamento e resultado -->
+      <Border x:Name="nuAndamento" Grid.Row="1" Grid.RowSpan="3" Style="{StaticResource Cartao}" Margin="0,10,0,0" Visibility="Collapsed">
+        <DockPanel>
+          <StackPanel DockPanel.Dock="Top">
+            <TextBlock x:Name="nuAndamentoTitulo" Style="{StaticResource Titulo}"/>
+            <TextBlock x:Name="nuEtapa" Style="{StaticResource Suave}" Margin="0,6,0,8"/>
+            <ProgressBar x:Name="nuBarra" Minimum="0" Maximum="1" Margin="0,0,0,12"/>
+          </StackPanel>
+          <DockPanel DockPanel.Dock="Bottom" Margin="0,10,0,0" LastChildFill="False">
+            <Button x:Name="nuConcluir" DockPanel.Dock="Right" Content="Concluir" Style="{StaticResource BotaoPrimario}" Visibility="Collapsed"/>
+            <Button x:Name="nuFazerBackup" DockPanel.Dock="Right" Content="Fazer backup agora" Style="{StaticResource BotaoBase}" Margin="0,0,10,0" Visibility="Collapsed"
+                    ToolTip="Os backups anteriores guardam os .PJC com os números antigos. Um backup agora já sai com os números novos."/>
+            <Button x:Name="nuAbrirSeguranca" DockPanel.Dock="Left" Content="Abrir a cópia de segurança" Style="{StaticResource BotaoBase}" Visibility="Collapsed"/>
+          </DockPanel>
+          <ScrollViewer x:Name="nuRolagemLog" VerticalScrollBarVisibility="Auto">
+            <ItemsControl x:Name="nuLog" ItemTemplate="{StaticResource ModeloLog}"/>
+          </ScrollViewer>
+        </DockPanel>
+      </Border>
+
+    </Grid>
+
     <!-- ========================================================== CONFIGURAÇÕES -->
     <ScrollViewer x:Name="painelConfig" Grid.Row="3" Margin="22,10,22,6" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
       <StackPanel>
@@ -1015,7 +1194,7 @@
               <TextBlock VerticalAlignment="Center" TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Limpeza de backups antigos"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — ao terminar um backup, oferece mover os antigos para a Lixeira"/></TextBlock>
             </DockPanel>
             <TextBlock Style="{StaticResource Suave}" Margin="0,6,0,0" TextWrapping="Wrap"
-                       Text="O backup mais recente sem falhas nunca é apagado. As cópias de segurança feitas antes de restaurações e migrações não entram na limpeza."/>
+                       Text="O backup mais recente sem falhas nunca é apagado. As cópias de segurança feitas antes de restaurações, migrações e mudanças na numeração não entram na limpeza."/>
           </StackPanel>
         </Border>
 
@@ -1075,7 +1254,7 @@
               <TextBlock Grid.Row="0" Text="Enter" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="0" Grid.Column="1" Text="Avançar / Concluir a etapa" Style="{StaticResource Suave}" Margin="0,2"/>
               <TextBlock Grid.Row="1" Text="Esc" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="1" Grid.Column="1" Text="Voltar uma etapa (ou limpar a busca)" Style="{StaticResource Suave}" Margin="0,2"/>
               <TextBlock Grid.Row="2" Text="Ctrl + F" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="2" Grid.Column="1" Text="Ir para o filtro / a busca da tela atual" Style="{StaticResource Suave}" Margin="0,2"/>
-              <TextBlock Grid.Row="3" Text="Ctrl + 1 a 4" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="3" Grid.Column="1" Text="Backup, Restaurar, Migrar, Histórico" Style="{StaticResource Suave}" Margin="0,2"/>
+              <TextBlock Grid.Row="3" Text="Ctrl + 1 a 5" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="3" Grid.Column="1" Text="Backup, Restaurar, Migrar, Histórico, Numeração" Style="{StaticResource Suave}" Margin="0,2"/>
               <TextBlock Grid.Row="4" Text="Ctrl + ," FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="4" Grid.Column="1" Text="Configurações (engrenagem)" Style="{StaticResource Suave}" Margin="0,2"/>
               <TextBlock Grid.Row="5" Text="F1" FontWeight="SemiBold" Margin="0,2,24,2"/><TextBlock Grid.Row="5" Grid.Column="1" Text="Ajuda (página do projeto)" Style="{StaticResource Suave}" Margin="0,2"/>
             </Grid>

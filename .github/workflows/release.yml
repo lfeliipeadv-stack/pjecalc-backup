@@ -51,7 +51,7 @@ jobs:
           $notas = @(
             '**Para usar:** baixe **PJeCalcBackup.exe** e dê dois cliques. Não precisa instalar.',
             '',
-            '**Versão para o CMD:** baixe o pacote **' + $env:PACOTE + '** (traz o PJeCalcBackup-Console.exe e o backup-calculos.bat).',
+            ('**Versão para o CMD:** baixe o pacote **' + $env:PACOTE + '** (traz o PJeCalcBackup-Console.exe e o backup-calculos.bat).'),
             '',
             'Na primeira vez o Windows pode mostrar *O Windows protegeu o computador* (o programa não tem assinatura digital paga): clique em **Mais informações → Executar assim mesmo**.',
             '',

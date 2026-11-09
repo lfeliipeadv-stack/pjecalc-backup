@@ -107,9 +107,10 @@ namespace PjeCalcBackup
                 else if (k.Key == ConsoleKey.DownArrow) sel = (sel + 1) % opcoes.Count;
                 else if (k.Key == ConsoleKey.Enter) { Console.WriteLine(); return sel; }
                 else if (k.Key == ConsoleKey.Escape) { Console.WriteLine(); return -1; }
-                else if (char.IsDigit(k.KeyChar))
+                else if (char.IsLetterOrDigit(k.KeyChar))
                 {
-                    int n = k.KeyChar - '0';
+                    // o número (ou a letra, como "N  Numeração") no começo da opção
+                    string n = char.ToUpperInvariant(k.KeyChar).ToString();
                     for (int i = 0; i < opcoes.Count; i++)
                         if (opcoes[i].TrimStart().StartsWith(n + " ")) { Console.SetCursorPosition(0, topo + opcoes.Count); Console.WriteLine(); return i; }
                 }
@@ -215,6 +216,7 @@ namespace PjeCalcBackup
                     "7  Planilha dos cálculos (Excel)",
                     "8  Limpar backups antigos",
                     "9  Configurações (backup automático, atualização…)",
+                    "N  Numeração: reservar 1 número por vez (para a numeração não pular)",
                     "0  Sair"
                 });
                 switch (op)
@@ -228,6 +230,7 @@ namespace PjeCalcBackup
                     case 6: FluxoPlanilha(); break;
                     case 7: FluxoLimpeza(); break;
                     case 8: FluxoConfiguracoes(); break;
+                    case 9: FluxoNumeracao(); break;
                     default: return;
                 }
             }
@@ -452,6 +455,58 @@ namespace PjeCalcBackup
             emOperacao = true; ResultadoBackup r; try { r = Backup.RestaurarBanco(dest, zip, config.Destino, config.ReabrirPjeCalc, this); } finally { emOperacao = false; }
             FimProgresso();
             Resultado(r, "Restauração do banco: " + r.Importados + " cálculo(s) no banco restaurado, " + r.Falhas + " falha(s).");
+            Pausa();
+        }
+
+        /// <summary>Reserva de 1 número por vez (a mudança do número de cada cálculo fica só no programa com janela).</summary>
+        private void FluxoNumeracao()
+        {
+            Cabecalho("Numeração dos cálculos  ·  reserva de números");
+            Linha(ConsoleColor.Gray, "  O PJe-Calc reserva 32 números de cada vez. Se ele fecha de forma anormal (queda de energia,");
+            Linha(ConsoleColor.Gray, "  computador desligado com ele aberto), os números reservados se perdem e a numeração pula,");
+            Linha(ConsoleColor.Gray, "  por exemplo do 2 para o 33. Reservando 1 número por vez, isso não acontece mais.");
+            Console.WriteLine();
+            CarregarInstalacoes();
+            if (instalacoes.Count == 0) { Aviso("Nenhuma instalação do PJe-Calc com cálculos foi encontrada."); Pausa(); return; }
+            var estados = new List<Tuple<Instalacao, EstadoNumeracao>>();
+            foreach (var i in instalacoes)
+            {
+                try { estados.Add(Tuple.Create(i, Numeracao.Ler(i))); }
+                catch (Exception ex) { Aviso("PJe-Calc " + i.Versao + ": não consegui ler o banco (" + ex.Message + ")."); }
+            }
+            foreach (var x in estados)
+            {
+                var e = x.Item2;
+                bool ok = e.Reserva <= 1;
+                Linha(ok ? ConsoleColor.Green : ConsoleColor.Yellow, "  " + (ok ? "√ " : "! ") + ("PJe-Calc " + x.Item1.Versao).PadRight(18) +
+                    (ok ? "reserva de 1 número" : "reserva de " + e.Reserva + " números").PadRight(22) + ("próximo nº " + e.Proximo).PadRight(18) +
+                    (e.Buracos > 0 ? e.Buracos + " número(s) pulados" : "sem números pulados"));
+            }
+            Console.WriteLine();
+            var corrigir = estados.Where(x => x.Item2.Reserva > 1 && x.Item2.BloqueioReserva == null).ToList();
+            if (corrigir.Count == 0) { Linha(ConsoleColor.Green, "  √ Nada a corrigir: todas as versões já reservam 1 número por vez."); Pausa(); return; }
+            int s = Escolher("Qual versão passa a reservar 1 número por vez?", corrigir.Select(x => ("PJe-Calc " + x.Item1.Versao).PadRight(18) +
+                "o próximo cálculo será o nº " + (x.Item2.Maior + 1) + "   " + x.Item1.Pasta).ToList());
+            if (s < 0) return;
+            var inst = corrigir[s].Item1;
+            if (!Destino()) { Pausa(); return; }
+            if (!AvisoInicial("O PJe-Calc " + inst.Versao + " passa a reservar 1 número por vez. Os números dos cálculos não mudam;\n" +
+                              "o próximo cálculo criado será o nº " + (corrigir[s].Item2.Maior + 1) + ".\n" +
+                              "Isto muda o banco do PJe-Calc (não é uma função oficial dele). Antes, uma cópia do banco\n" +
+                              "é guardada em " + config.Destino + " e dá para desfazer pelo Histórico (Restaurar banco).", new[] { inst })) return;
+            Console.WriteLine();
+            Action<NivelLog, string> log = (n, t) => Log(n == NivelLog.Ok ? TipoLog.Ok : n == NivelLog.Erro ? TipoLog.Erro : n == NivelLog.Aviso ? TipoLog.Aviso : TipoLog.Info, t);
+            cancelado = false;
+            ResultadoNumeracao r;
+            emOperacao = true;
+            try { r = Numeracao.ComPjeCalcFechado(inst, config.ReabrirPjeCalc, log, Progresso, () => Numeracao.Aplicar(inst, new List<Mudanca>(), true, config.Destino, log, Progresso)); }
+            finally { emOperacao = false; }
+            FimProgresso();
+            Console.WriteLine();
+            Linha(r.Ok ? ConsoleColor.Green : ConsoleColor.Yellow, "  " + (r.Ok ? "√ " : "! ") + r.Resumo);
+            if (r.PastaSeguranca != null) Linha(ConsoleColor.Gray, "    Cópia de segurança: " + r.PastaSeguranca);
+            Linha(ConsoleColor.DarkGray, "    Para mudar o número dos cálculos, use a aba Numeração do programa com janela.");
+            if (config.Sons) Avisos.Som(r.Ok);
             Pausa();
         }
 

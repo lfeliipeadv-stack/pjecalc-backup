@@ -48,6 +48,10 @@ namespace PjeCalcBackup
         public bool AgendaLimpar { get; set; }
         // 1.3: cálculos desmarcados no último backup (pasta da instalação → números), para virem desmarcados de novo
         public Dictionary<string, List<string>> CalculosDesmarcados { get; set; }
+        // 1.4: aba Numeração
+        public List<string> NumeracaoAvisoIgnorado { get; set; }   // pastas em que o aviso "a numeração pode pular" foi fechado
+        public bool NumeracaoAvisoVisto { get; set; }              // o aviso laranja da aba foi recolhido
+        public string NumeracaoOrdem { get; set; }                 // ordem de "Colocar em sequência"
 
         private static string Arquivo
         {
@@ -84,6 +88,8 @@ namespace PjeCalcBackup
 
         private void CompletarAgenda()
         {
+            if (NumeracaoAvisoIgnorado == null) NumeracaoAvisoIgnorado = new List<string>();
+            if (string.IsNullOrEmpty(NumeracaoOrdem)) NumeracaoOrdem = "numero";
             if (Limpeza == null) Limpeza = "";
             if (string.IsNullOrEmpty(AgendaFrequencia)) AgendaFrequencia = "semanal";
             if (AgendaDias == null || AgendaDias.Count == 0) AgendaDias = new List<string> { "FRI" };

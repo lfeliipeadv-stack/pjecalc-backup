@@ -24,7 +24,7 @@ namespace PjeCalcBackup
 
     public class RegistroHistorico
     {
-        public string Tipo { get; set; }        // backup | restauracao | migracao | restauracao-banco
+        public string Tipo { get; set; }        // backup | restauracao | migracao | restauracao-banco | numeracao
         public DateTime Data { get; set; }
         public string Resumo { get; set; }
         public int Calculos { get; set; }
@@ -43,6 +43,7 @@ namespace PjeCalcBackup
                     case "restauracao": return "Restauração de .PJC";
                     case "migracao": return "Migração entre versões";
                     case "restauracao-banco": return "Restauração do banco";
+                    case "numeracao": return "Mudança na numeração";
                     case "arquivo": return "Arquivo salvo";
                     default: return "Backup";
                 }

@@ -108,7 +108,7 @@ namespace PjeCalcBackup
         }
 
         /// <summary>Roda uma consulta numa pasta que já tem a cópia do banco e devolve as linhas (sem o cabeçalho).</summary>
-        private static List<List<string>> Consultar(Instalacao inst, string tmp, string select)
+        public static List<List<string>> Consultar(Instalacao inst, string tmp, string select)
         {
             string csv = Path.Combine(tmp, "q" + Guid.NewGuid().ToString("N").Substring(0, 6) + ".csv");
             string sql = "CALL CSVWRITE('" + csv.Replace("'", "''") + "', '" + select.Replace("'", "''") + "', 'UTF-8', ';')";
@@ -238,7 +238,7 @@ namespace PjeCalcBackup
             return lista;
         }
 
-        private static List<string> DividirCsv(string linha)
+        public static List<string> DividirCsv(string linha)
         {
             var r = new List<string>();
             var sb = new StringBuilder();
