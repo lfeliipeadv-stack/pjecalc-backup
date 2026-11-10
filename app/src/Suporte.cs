@@ -52,6 +52,10 @@ namespace PjeCalcBackup
         public List<string> NumeracaoAvisoIgnorado { get; set; }   // pastas em que o aviso "a numeração pode pular" foi fechado
         public bool NumeracaoAvisoVisto { get; set; }              // o aviso laranja da aba foi recolhido
         public string NumeracaoOrdem { get; set; }                 // ordem de "Colocar em sequência"
+        // 1.5: versão nova do PJe-Calc
+        public List<string> MigracaoAvisoIgnorado { get; set; }    // pastas de versões novas em que a faixa "levar os cálculos" foi fechada
+        public bool VerificarPjeCalc { get; set; }                 // consultar o site do TRT8 ao abrir o programa
+        public string PjeCalcAvisoIgnorado { get; set; }           // versão do PJe-Calc cujo aviso de download foi fechado
 
         private static string Arquivo
         {
@@ -70,6 +74,7 @@ namespace PjeCalcBackup
                     if (string.IsNullOrEmpty(c.Destino)) c.Destino = DestinoPadrao();
                     if (c.VersaoConfig < 2) c.AplicarPadroesNovos();
                     if (c.VersaoConfig < 3) { c.BackupRapido = true; c.VersaoConfig = 3; }
+                    if (c.VersaoConfig < 4) { c.VerificarPjeCalc = true; c.VersaoConfig = 4; }
                     c.CompletarAgenda();
                     if (c.Paleta < 0 || c.Paleta >= PjeCalcBackup.Tema.Paletas.Length) c.Paleta = 0;
                     return c;
@@ -89,6 +94,7 @@ namespace PjeCalcBackup
         private void CompletarAgenda()
         {
             if (NumeracaoAvisoIgnorado == null) NumeracaoAvisoIgnorado = new List<string>();
+            if (MigracaoAvisoIgnorado == null) MigracaoAvisoIgnorado = new List<string>();
             if (string.IsNullOrEmpty(NumeracaoOrdem)) NumeracaoOrdem = "numero";
             if (Limpeza == null) Limpeza = "";
             if (string.IsNullOrEmpty(AgendaFrequencia)) AgendaFrequencia = "semanal";
@@ -100,7 +106,7 @@ namespace PjeCalcBackup
         private void AplicarPadroesNovos()
         {
             Tema = "Sistema"; Paleta = 0; Sons = true; Notificacoes = true; Lembrete = true; LembreteDias = 7;
-            VerificarAtualizacoes = true; AbrirPastaAoTerminar = false; ReabrirPjeCalc = true; BackupRapido = true; VersaoConfig = 3;
+            VerificarAtualizacoes = true; AbrirPastaAoTerminar = false; ReabrirPjeCalc = true; BackupRapido = true; VerificarPjeCalc = true; VersaoConfig = 4;
         }
 
         private static string DestinoPadrao()

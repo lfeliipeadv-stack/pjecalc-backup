@@ -316,6 +316,38 @@
       </Setter>
     </Style>
 
+    <!-- caixa de texto de várias linhas (texto começa em cima) -->
+    <Style x:Key="CaixaTextoLonga" TargetType="TextBox">
+      <Setter Property="Background" Value="{DynamicResource Superficie}"/>
+      <Setter Property="Foreground" Value="{DynamicResource Texto}"/>
+      <Setter Property="CaretBrush" Value="{DynamicResource Texto}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource BordaControle}"/>
+      <Setter Property="Padding" Value="8,6"/>
+      <Setter Property="AcceptsReturn" Value="True"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+      <Setter Property="Template">
+        <Setter.Value>
+          <ControlTemplate TargetType="TextBox">
+            <Border x:Name="b" Background="{TemplateBinding Background}" BorderBrush="{TemplateBinding BorderBrush}" BorderThickness="1" CornerRadius="6">
+              <Grid>
+                <TextBlock x:Name="dica" Text="{TemplateBinding Tag}" Margin="11,7,8,0" VerticalAlignment="Top" TextWrapping="Wrap" Foreground="{DynamicResource TextoSuave}" Visibility="Collapsed" IsHitTestVisible="False"/>
+                <ScrollViewer x:Name="PART_ContentHost" Margin="{TemplateBinding Padding}" VerticalAlignment="Stretch"/>
+              </Grid>
+            </Border>
+            <ControlTemplate.Triggers>
+              <Trigger Property="Text" Value="">
+                <Setter TargetName="dica" Property="Visibility" Value="Visible"/>
+              </Trigger>
+              <Trigger Property="IsKeyboardFocused" Value="True">
+                <Setter TargetName="b" Property="BorderBrush" Value="{DynamicResource Primaria}"/>
+              </Trigger>
+            </ControlTemplate.Triggers>
+          </ControlTemplate>
+        </Setter.Value>
+      </Setter>
+    </Style>
+
     <Style TargetType="ComboBoxItem">
       <Setter Property="Foreground" Value="{DynamicResource Texto}"/>
       <Setter Property="Template">
@@ -587,6 +619,28 @@
           <TextBlock x:Name="txtAvisoNumeracao" VerticalAlignment="Center" TextWrapping="Wrap"/>
         </DockPanel>
       </Border>
+      <!-- versão nova do PJe-Calc instalada e ainda sem cálculos: levar os cálculos da anterior -->
+      <Border x:Name="avisoMigrar" Visibility="Collapsed" Background="{DynamicResource PrimariaClara}" BorderBrush="{DynamicResource Primaria}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
+        <DockPanel>
+          <Button x:Name="btnFecharMigrar" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"
+                  ToolTip="Não perguntar de novo sobre esta versão" AutomationProperties.Name="Fechar aviso da versão nova"/>
+          <Button x:Name="btnMigrarAgora" DockPanel.Dock="Right" Content="Levar os cálculos" Style="{StaticResource BotaoBase}" Padding="12,4"/>
+          <TextBlock x:Name="txtAvisoMigrar" VerticalAlignment="Center" TextWrapping="Wrap"/>
+        </DockPanel>
+      </Border>
+      <!-- versão nova do PJe-Calc publicada no site do TRT8 -->
+      <Border x:Name="avisoPjeCalc" Visibility="Collapsed" Background="{DynamicResource PrimariaClara}" BorderBrush="{DynamicResource Primaria}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
+        <StackPanel>
+          <DockPanel>
+            <Button x:Name="btnFecharPjeCalc" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"
+                    ToolTip="Não avisar mais sobre esta versão" AutomationProperties.Name="Fechar aviso do PJe-Calc novo"/>
+            <Button x:Name="btnBaixarPjeCalc" DockPanel.Dock="Right" Content="Baixar e instalar" Style="{StaticResource BotaoBase}" Padding="12,4"/>
+            <Button x:Name="btnSitePjeCalc" DockPanel.Dock="Right" Content="Ver no site do TRT8" Style="{StaticResource BotaoLink}" Margin="0,0,12,0" VerticalAlignment="Center"/>
+            <TextBlock x:Name="txtAvisoPjeCalc" VerticalAlignment="Center" TextWrapping="Wrap"/>
+          </DockPanel>
+          <ProgressBar x:Name="barraPjeCalc" Height="6" Margin="0,8,0,2" Minimum="0" Maximum="1" Visibility="Collapsed"/>
+        </StackPanel>
+      </Border>
       <Border x:Name="avisoLembrete" Visibility="Collapsed" Background="{DynamicResource AvisoFundo}" BorderBrush="{DynamicResource AvisoBorda}" BorderThickness="1" CornerRadius="8" Padding="14,8" Margin="0,0,0,6">
         <DockPanel>
           <Button x:Name="btnFecharLembrete" DockPanel.Dock="Right" Content="✕" Style="{StaticResource BotaoLink}" Margin="12,0,0,0" Foreground="{DynamicResource TextoSuave}"/>
@@ -600,7 +654,7 @@
     <DockPanel Grid.Row="2" Margin="22,10,22,0" LastChildFill="False">
       <!-- engrenagem: Configurações, Sobre e Apoie -->
       <RadioButton x:Name="abaConfig" DockPanel.Dock="Right" GroupName="abas" Style="{StaticResource Aba}" Margin="0"
-                   ToolTip="Configurações, sobre o programa e apoio" AutomationProperties.Name="Configurações" Padding="0">
+                   ToolTip="Configurações" AutomationProperties.Name="Configurações" Padding="0">
         <Path Width="20" Height="20" Stretch="Uniform" Margin="-4,1,-4,1"
               Fill="{Binding Foreground, RelativeSource={RelativeSource AncestorType=RadioButton}}">
           <Path.Data>
@@ -627,6 +681,9 @@
       <RadioButton x:Name="abaHistorico" GroupName="abas" Style="{StaticResource Aba}" Content="Histórico"/>
       <RadioButton x:Name="abaNumeracao" GroupName="abas" Style="{StaticResource Aba}" Content="Numeração"
                    ToolTip="Reserva de números e mudança do número dos cálculos"/>
+      <!-- aparece só enquanto o Sobre / Apoiar do rodapé está aberto -->
+      <RadioButton x:Name="abaSobre" GroupName="abas" Style="{StaticResource Aba}" Content="Sobre" Visibility="Collapsed"/>
+      <RadioButton x:Name="abaRelato" GroupName="abas" Style="{StaticResource Aba}" Content="Relatar um problema" Visibility="Collapsed"/>
     </DockPanel>
 
     <!-- ================================================================ BACKUP -->
@@ -1233,6 +1290,9 @@
             <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding VerificarAtualizacoes, Mode=TwoWay}" Margin="0,12,0,10">
               <TextBlock><Run FontWeight="SemiBold" Text="Verificar se há versão nova ao abrir"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — consulta só a página do projeto no GitHub; nenhum dado seu é enviado"/></TextBlock>
             </CheckBox>
+            <CheckBox Style="{StaticResource Interruptor}" IsChecked="{Binding VerificarPjeCalc, Mode=TwoWay}" Margin="0,0,0,10">
+              <TextBlock TextWrapping="Wrap"><Run FontWeight="SemiBold" Text="Avisar quando sair versão nova do PJe-Calc"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — ao abrir, consulta a página de instalação do PJe-Calc no site do TRT da 8ª Região"/></TextBlock>
+            </CheckBox>
             <DockPanel>
               <Button x:Name="btnAtualizarAgora" DockPanel.Dock="Right" Content="Atualizar agora" Style="{StaticResource BotaoPrimario}" Margin="8,0,0,0" Visibility="Collapsed"/>
               <Button x:Name="btnVerificarAgora" DockPanel.Dock="Right" Content="Verificar agora" Style="{StaticResource BotaoBase}"/>
@@ -1261,6 +1321,12 @@
           </StackPanel>
         </Border>
 
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ========================================================== SOBRE, LICENÇA E APOIE (aberto pelo rodapé) -->
+    <ScrollViewer x:Name="painelSobre" Grid.Row="3" Margin="22,10,22,6" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+      <StackPanel>
         <!-- sobre -->
         <Border x:Name="cartaoSobre" Style="{StaticResource Cartao}">
           <StackPanel>
@@ -1276,17 +1342,60 @@
                 </Canvas>
               </Viewbox>
             </StackPanel>
-            <TextBlock TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="21" Foreground="{DynamicResource Texto}"
-                       Text="Este programa nasceu de uma dificuldade real no dia a dia da advocacia: ao instalar uma versão nova do PJe-Calc, os cálculos não vão junto, e a única saída era exportar e importar um por um, manualmente, o que levava horas. O PJe-Calc Backup faz isso de forma automática e segura, com conferência no final."/>
-            <TextBlock TextWrapping="Wrap" Margin="0,8,0,0" Foreground="{DynamicResource Texto}"
+            <TextBlock TextWrapping="Wrap" Margin="0,10,0,0" LineHeight="22" Foreground="{DynamicResource Texto}"
+                       Text="O PJe-Calc Cidadão é a ferramenta de cálculos trabalhistas usada todos os dias por advogados, peritos, contadores, calculistas e servidores da Justiça do Trabalho. Ele guarda os cálculos num banco de dados dentro da pasta de cada versão instalada, e isso traz dificuldades que quem usa conhece bem:"/>
+
+            <TextBlock Text="A dificuldade" FontWeight="SemiBold" FontSize="15" Margin="0,16,0,6"/>
+            <Grid>
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+              <TextBlock Grid.Row="0" Text="✕" Foreground="{DynamicResource Erro}" FontWeight="Bold" Margin="2,3,10,0"/>
+              <TextBlock Grid.Row="0" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" LineHeight="21"><Run FontWeight="SemiBold" Text="Não há backup em lote."/><Run Foreground="{DynamicResource TextoSuave}" Text=" Para guardar os cálculos em .PJC, é preciso exportar um por um pela tela, e o PJe-Calc não tem backup automático."/></TextBlock>
+              <TextBlock Grid.Row="1" Text="✕" Foreground="{DynamicResource Erro}" FontWeight="Bold" Margin="2,3,10,0"/>
+              <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" LineHeight="21"><Run FontWeight="SemiBold" Text="Versão nova começa vazia."/><Run Foreground="{DynamicResource TextoSuave}" Text=" Cada versão é instalada numa pasta nova, e os cálculos da anterior não vão junto. Levar centenas de cálculos, exportando e importando um por um, toma horas."/></TextBlock>
+              <TextBlock Grid.Row="2" Text="✕" Foreground="{DynamicResource Erro}" FontWeight="Bold" Margin="2,3,10,0"/>
+              <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" LineHeight="21"><Run FontWeight="SemiBold" Text="Copiar o banco à mão costuma dar erro."/><Run Foreground="{DynamicResource TextoSuave}" Text=" A estrutura do banco muda de uma versão para outra, e levar o arquivo do banco de uma pasta para a outra muitas vezes deixa o PJe-Calc com erros ou sem abrir."/></TextBlock>
+              <TextBlock Grid.Row="3" Text="✕" Foreground="{DynamicResource Erro}" FontWeight="Bold" Margin="2,3,10,0"/>
+              <TextBlock Grid.Row="3" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" LineHeight="21"><Run FontWeight="SemiBold" Text="Tudo num computador só."/><Run Foreground="{DynamicResource TextoSuave}" Text=" Um HD que estraga, uma formatação, um vírus ou uma queda de energia que corrompe o banco podem levar anos de trabalho de uma vez."/></TextBlock>
+              <TextBlock Grid.Row="4" Text="✕" Foreground="{DynamicResource Erro}" FontWeight="Bold" Margin="2,3,10,0"/>
+              <TextBlock Grid.Row="4" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" LineHeight="21"><Run FontWeight="SemiBold" Text="Numeração que pula e duplicados."/><Run Foreground="{DynamicResource TextoSuave}" Text=" A numeração salta (do 2 para o 33) sem como corrigir pela tela, e importar de novo cria cálculos repetidos."/></TextBlock>
+            </Grid>
+
+            <TextBlock Text="A solução" FontWeight="SemiBold" FontSize="15" Margin="0,16,0,6"/>
+            <TextBlock TextWrapping="Wrap" LineHeight="22" Foreground="{DynamicResource Texto}"
+                       Text="O PJe-Calc Backup nasceu dessa dificuldade real, no dia a dia da advocacia. Ele faz em poucos cliques o que antes levava horas, sempre pelo caminho oficial do PJe-Calc (exportar e importar .PJC) e com conferência no final:"/>
+            <Grid Margin="0,6,0,0">
+              <Grid.ColumnDefinitions><ColumnDefinition Width="Auto"/><ColumnDefinition Width="*"/></Grid.ColumnDefinitions>
+              <Grid.RowDefinitions><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/><RowDefinition/></Grid.RowDefinitions>
+              <TextBlock Grid.Row="0" Text="✓" Foreground="{DynamicResource Ok}" FontWeight="Bold" Margin="2,2,10,0"/>
+              <TextBlock Grid.Row="0" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" Text="Backup de todos os cálculos de todas as versões instaladas, em .PJC e com o banco completo, conferido um por um."/>
+              <TextBlock Grid.Row="1" Text="✓" Foreground="{DynamicResource Ok}" FontWeight="Bold" Margin="2,2,10,0"/>
+              <TextBlock Grid.Row="1" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" Text="Backup automático nos dias e no horário escolhidos, também num pendrive ou numa pasta do OneDrive ou do Google Drive."/>
+              <TextBlock Grid.Row="2" Text="✓" Foreground="{DynamicResource Ok}" FontWeight="Bold" Margin="2,2,10,0"/>
+              <TextBlock Grid.Row="2" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" Text="Migração da versão antiga para a nova de uma vez, sem mexer na origem e sem duplicar o que já foi levado."/>
+              <TextBlock Grid.Row="3" Text="✓" Foreground="{DynamicResource Ok}" FontWeight="Bold" Margin="2,2,10,0"/>
+              <TextBlock Grid.Row="3" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" Text="Restauração de um cálculo ou do banco inteiro, sempre com uma cópia de segurança antes, para dar para desfazer."/>
+              <TextBlock Grid.Row="4" Text="✓" Foreground="{DynamicResource Ok}" FontWeight="Bold" Margin="2,2,10,0"/>
+              <TextBlock Grid.Row="4" Grid.Column="1" TextWrapping="Wrap" Margin="0,2" Text="Numeração dos cálculos em sequência (1, 2, 3…) e aviso quando sai uma versão nova do PJe-Calc."/>
+            </Grid>
+
+            <TextBlock TextWrapping="Wrap" Margin="0,16,0,0" Foreground="{DynamicResource Texto}"
                        Text="Projeto independente, gratuito e de código aberto, feito no Brasil."/>
-            <TextBlock Style="{StaticResource Suave}" TextWrapping="Wrap" Margin="0,10,0,0"
-                       Text="Não oficial: sem vínculo com nenhum TRT, com o CSJT ou com a equipe do PJe-Calc. Tudo roda só neste computador."/>
-            <DockPanel Margin="0,12,0,0">
-              <Button x:Name="btnLicenca" DockPanel.Dock="Right" Content="Ler a licença" Style="{StaticResource BotaoBase}" Padding="12,5"/>
-              <TextBlock TextWrapping="Wrap" VerticalAlignment="Center"><Run FontWeight="SemiBold" Text="Licença MIT"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — software livre: pode usar, copiar, modificar e compartilhar, mantendo o aviso de autoria. É fornecido sem garantia."/></TextBlock>
-            </DockPanel>
+            <TextBlock Style="{StaticResource Suave}" TextWrapping="Wrap" Margin="0,6,0,0"
+                       Text="O PJe-Calc é desenvolvido pelo TRT da 8ª Região e adotado pelo CSJT em toda a Justiça do Trabalho. Este programa é não oficial: não tem vínculo com o TRT da 8ª Região, com o CSJT ou com a equipe do PJe-Calc. Tudo roda só neste computador."/>
           </StackPanel>
+        </Border>
+
+        <!-- licença -->
+        <Border x:Name="cartaoLicenca" Style="{StaticResource Cartao}">
+          <DockPanel>
+            <Button x:Name="btnLicenca" DockPanel.Dock="Right" Content="Ler a licença" Style="{StaticResource BotaoBase}" Padding="12,5" VerticalAlignment="Center" Margin="16,0,0,0"/>
+            <StackPanel>
+              <TextBlock Text="Licença MIT" Style="{StaticResource Titulo}"/>
+              <TextBlock TextWrapping="Wrap" Margin="0,8,0,0" Style="{StaticResource Suave}"
+                         Text="Software livre: pode usar, copiar, modificar e compartilhar, mantendo o aviso de autoria. É fornecido sem garantia. O código-fonte está no GitHub."/>
+            </StackPanel>
+          </DockPanel>
         </Border>
 
         <!-- apoie -->
@@ -1319,6 +1428,40 @@
       </StackPanel>
     </ScrollViewer>
 
+    <!-- ========================================================== RELATAR UM PROBLEMA (aberto pelo rodapé) -->
+    <ScrollViewer x:Name="painelRelato" Grid.Row="3" Margin="22,10,22,6" Visibility="Collapsed" VerticalScrollBarVisibility="Auto">
+      <StackPanel>
+        <Border Style="{StaticResource Cartao}">
+          <StackPanel>
+            <TextBlock Text="Relatar um problema" Style="{StaticResource Titulo}"/>
+            <TextBlock Style="{StaticResource Suave}" TextWrapping="Wrap" Margin="0,8,0,0" LineHeight="20"
+                       Text="Conte o que aconteceu. As informações técnicas abaixo são preenchidas pelo programa, sem os nomes das partes, os números de processo e os CPFs. Nada é enviado sozinho: você escolhe por onde mandar e confere a mensagem antes de enviar."/>
+
+            <TextBlock Text="O que aconteceu?" FontWeight="SemiBold" Margin="0,16,0,6"/>
+            <TextBox x:Name="txtRelatoDescricao" Style="{StaticResource CaixaTextoLonga}" MinHeight="96" MaxHeight="200"
+                     Tag="Por exemplo: o que você estava fazendo, em qual aba, e a mensagem que apareceu. Evite escrever os nomes das partes."/>
+
+            <DockPanel Margin="0,16,0,6">
+              <Button x:Name="btnRelatoAtualizar" DockPanel.Dock="Right" Content="Ler de novo" Style="{StaticResource BotaoLink}" VerticalAlignment="Center"
+                      ToolTip="Monta de novo as informações técnicas"/>
+              <TextBlock VerticalAlignment="Center"><Run FontWeight="SemiBold" Text="Informações técnicas"/><Run Foreground="{DynamicResource TextoSuave}" Text="  — pode apagar o que não quiser enviar"/></TextBlock>
+            </DockPanel>
+            <TextBox x:Name="txtRelatoTecnico" Style="{StaticResource CaixaTextoLonga}" TextWrapping="NoWrap" HorizontalScrollBarVisibility="Auto"
+                     FontFamily="Consolas" FontSize="12" MinHeight="150" MaxHeight="260" Tag="Lendo…"/>
+
+            <WrapPanel Margin="0,16,0,0">
+              <Button x:Name="btnRelatoEmail" Content="Enviar por e-mail…" Style="{StaticResource BotaoPrimario}" Margin="0,0,8,8"/>
+              <Button x:Name="btnRelatoGithub" Content="Enviar pelo GitHub…" Style="{StaticResource BotaoBase}" Margin="0,0,8,8"/>
+              <Button x:Name="btnRelatoCopiar" Content="Copiar o texto" Style="{StaticResource BotaoBase}" Margin="0,0,8,8"/>
+            </WrapPanel>
+            <TextBlock x:Name="txtRelatoAviso" Margin="2,2,0,0" Foreground="{DynamicResource Ok}" FontWeight="SemiBold" TextWrapping="Wrap" Visibility="Collapsed"/>
+            <TextBlock Style="{StaticResource Suave}" FontSize="12" TextWrapping="Wrap" Margin="2,8,0,0" LineHeight="18"
+                       Text="E-mail: pjecalcbkp@gmail.com  ·  O GitHub pede uma conta gratuita. O e-mail abre com a mensagem pronta; ela só é enviada quando você confirma lá."/>
+          </StackPanel>
+        </Border>
+      </StackPanel>
+    </ScrollViewer>
+
     <!-- ========================================================= rodapé -->
     <Border Grid.Row="4" BorderBrush="{DynamicResource Borda}" BorderThickness="0,1,0,0" Background="{DynamicResource Rodape}" Padding="24,9">
       <DockPanel>
@@ -1331,9 +1474,22 @@
               <TextBlock Text="Apoiar"/>
             </StackPanel>
           </Button>
+          <Button x:Name="lnkRelatar" Content="Relatar um problema" Style="{StaticResource BotaoLink}" Margin="0,0,18,0"/>
           <Button x:Name="lnkGithub" Content="Código-fonte e ajuda" Style="{StaticResource BotaoLink}"/>
         </StackPanel>
-        <TextBlock x:Name="txtRodape" Style="{StaticResource Suave}" FontSize="12" VerticalAlignment="Center" Text="Projeto independente e não oficial. Tudo roda só neste computador."/>
+        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+          <TextBlock x:Name="txtRodape" Style="{StaticResource Suave}" FontSize="12" VerticalAlignment="Center"
+                     Text="Projeto independente e não oficial."/>
+          <!-- bandeira do Brasil desenhada (o Windows não mostra a bandeira como emoji) -->
+          <Viewbox Width="18" Height="13" Margin="7,1,0,0" VerticalAlignment="Center" ToolTip="Feito no Brasil" AutomationProperties.Name="Feito no Brasil">
+            <Canvas Width="42" Height="30">
+              <Rectangle Width="42" Height="30" Fill="#009C3B" RadiusX="3" RadiusY="3"/>
+              <Polygon Points="21,3.5 38.5,15 21,26.5 3.5,15" Fill="#FFDF00"/>
+              <Ellipse Canvas.Left="13.5" Canvas.Top="7.5" Width="15" Height="15" Fill="#002776"/>
+              <Path Data="M14.1,13.4 Q21,11.3 27.9,16.8" Stroke="White" StrokeThickness="1.4"/>
+            </Canvas>
+          </Viewbox>
+        </StackPanel>
       </DockPanel>
     </Border>
   </Grid>

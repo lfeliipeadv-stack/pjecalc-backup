@@ -25,8 +25,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("PJe-Calc Backup")]
 [assembly: AssemblyProduct("PJe-Calc Backup")]
 [assembly: AssemblyDescription("Backup, restauração e migração dos cálculos do PJe-Calc Cidadão (projeto independente, não oficial)")]
-[assembly: AssemblyVersion("1.4.0.0")]
-[assembly: AssemblyFileVersion("1.4.0.0")]
+[assembly: AssemblyVersion("1.5.0.0")]
+[assembly: AssemblyFileVersion("1.5.0.0")]
 
 namespace PjeCalcBackup
 {
@@ -41,6 +41,7 @@ namespace PjeCalcBackup
 
         private Assistente asBk, asRs, asMg;
         private PainelNumeracao numeracao;
+        private AvisoPjeCalcOficial pjeCalcOficial;
         private readonly Dictionary<string, List<CalculoInfo>> cacheCalculos = new Dictionary<string, List<CalculoInfo>>(StringComparer.OrdinalIgnoreCase);
         private string selecaoBkCarregada = "";
 
@@ -134,11 +135,16 @@ namespace PjeCalcBackup
                 ocupado => { executando = ocupado; TravarAbas(ocupado, null); },
                 () => { indiceBusca = null; AtualizarEstados(); });
             ConfigurarConfiguracoes();
+            ConfigurarAvisoMigrar();
+            pjeCalcOficial = new AvisoPjeCalcOficial(janela, config, () => executando);
 
             A<Button>("lnkGithub").Click += (s, e) => Abrir(Atualizacao.UrlProjeto);
-            A<TextBlock>("txtRodape").Text = "Projeto independente e não oficial. Tudo roda só neste computador.   ·   Versão " + Atualizacao.Atual;
+            var rodape = A<TextBlock>("txtRodape");
+            rodape.Text = "Projeto independente e não oficial.   ·   Versão " + Atualizacao.Atual;
+            rodape.ToolTip = "Projeto independente e não oficial, sem vínculo com o TRT da 8ª Região, com o CSJT ou com a equipe do PJe-Calc. Tudo roda só neste computador.";
             A<Button>("lnkSobre").Click += (s, e) => MostrarCartao("cartaoSobre");
             A<Button>("lnkApoiar").Click += (s, e) => MostrarCartao("cartaoApoie");
+            ConfigurarRelato();
             ConfigurarApoio();
             A<Button>("btnFecharLembrete").Click += (s, e) => A<Border>("avisoLembrete").Visibility = Visibility.Collapsed;
             A<Button>("btnLembreteBackup").Click += (s, e) => { A<Border>("avisoLembrete").Visibility = Visibility.Collapsed; A<RadioButton>("abaBackup").IsChecked = true; };
@@ -356,17 +362,117 @@ namespace PjeCalcBackup
 
         // ============================================================ sobre e apoio
 
-        /// <summary>Abre a engrenagem e rola até o cartão (Sobre ou Apoie).</summary>
+        /// <summary>Abre a aba Sobre (que só aparece quando chamada pelo rodapé) e rola até o cartão (Sobre ou Apoie).</summary>
         private void MostrarCartao(string nome)
         {
-            A<RadioButton>("abaConfig").IsChecked = true;
+            if (executando) { Avisar(TipoDialogo.Info, "Aguarde", "Termine a operação em andamento antes."); return; }
+            var aba = A<RadioButton>("abaSobre");
+            aba.Visibility = Visibility.Visible;
+            aba.IsChecked = true;
             janela.Dispatcher.BeginInvoke(new Action(() =>
             {
+                var sv = A<ScrollViewer>("painelSobre");
+                if (nome == "cartaoSobre") { sv.ScrollToTop(); return; }
                 var c = A<FrameworkElement>(nome);
-                var sv = A<ScrollViewer>("painelConfig");
                 var p = c.TransformToAncestor(sv).Transform(new Point(0, 0));
                 sv.ScrollToVerticalOffset(sv.VerticalOffset + p.Y - 8);
             }), System.Windows.Threading.DispatcherPriority.Loaded);
+        }
+
+        // ============================================================ relatar um problema
+
+        private void ConfigurarRelato()
+        {
+            A<Button>("lnkRelatar").Click += (s, e) =>
+            {
+                var aba = A<RadioButton>("abaRelato");
+                aba.Visibility = Visibility.Visible;
+                aba.IsChecked = true;
+                if (string.IsNullOrEmpty(A<TextBox>("txtRelatoTecnico").Text)) LerRelato();
+                janela.Dispatcher.BeginInvoke(new Action(() => A<TextBox>("txtRelatoDescricao").Focus()), System.Windows.Threading.DispatcherPriority.Loaded);
+            };
+            A<Button>("btnRelatoAtualizar").Click += (s, e) => LerRelato();
+            A<Button>("btnRelatoCopiar").Click += (s, e) => { string t = MensagemRelato(false); if (t != null && CopiarTexto(t)) AvisoRelato("Texto copiado. Cole num e-mail para " + Relato.Email + " ou no GitHub."); };
+            A<Button>("btnRelatoEmail").Click += (s, e) =>
+            {
+                string t = MensagemRelato(true); if (t == null) return;
+                CopiarTexto(t);
+                bool cortou;
+                string link = Relato.LinkEmail(t, out cortou);
+                try { Process.Start(new ProcessStartInfo(link) { UseShellExecute = true }); }
+                catch
+                {
+                    Avisar(TipoDialogo.Info, "Nenhum programa de e-mail", "Não encontrei um programa de e-mail configurado neste computador.\n\nO texto foi copiado: cole-o num e-mail para " + Relato.Email + ".");
+                    return;
+                }
+                AvisoRelato("Abrindo o e-mail para " + Relato.Email + "." + (cortou ? " A mensagem era longa e foi cortada: o texto completo foi copiado, é só colar no e-mail." : " O texto também foi copiado."));
+            };
+            A<Button>("btnRelatoGithub").Click += (s, e) =>
+            {
+                string t = MensagemRelato(true); if (t == null) return;
+                CopiarTexto(t);
+                Abrir(Relato.LinkGitHub(A<TextBox>("txtRelatoDescricao").Text, t));
+                AvisoRelato("Abrindo o GitHub com o relato preenchido. Confira e clique em \"Create\". O texto também foi copiado.");
+            };
+        }
+
+        /// <summary>Monta (em segundo plano) as informações técnicas, sem dados das partes.</summary>
+        private void LerRelato()
+        {
+            var caixa = A<TextBox>("txtRelatoTecnico");
+            caixa.Text = "";
+            caixa.Tag = "Lendo as informações do computador…";
+            var versoes = vm.Instalacoes.Select(i =>
+            {
+                List<CalculoInfo> l;
+                return new Relato.VersaoInstalada { Versao = i.Inst.Versao, Pasta = i.Pasta, Estado = i.TextoEstado, Calculos = cacheCalculos.TryGetValue(i.Pasta, out l) ? l.Count : (int?)null };
+            }).ToList();
+            var conhecidos = cacheCalculos.Values.SelectMany(x => x).ToList();
+            var cfg = config;
+            Task.Factory.StartNew(() =>
+            {
+                string t;
+                try { t = Relato.InformacoesTecnicas(cfg, versoes, conhecidos); }
+                catch (Exception ex) { t = "Não consegui ler tudo: " + ex.Message; }
+                NaTela(() => { caixa.Text = t; caixa.Tag = ""; });
+            });
+        }
+
+        /// <summary>Mensagem completa; se pedirDescricao, exige que a pessoa conte o que aconteceu.</summary>
+        private string MensagemRelato(bool pedirDescricao)
+        {
+            var d = A<TextBox>("txtRelatoDescricao");
+            if (pedirDescricao && string.IsNullOrWhiteSpace(d.Text))
+            {
+                Avisar(TipoDialogo.Info, "Conte o que aconteceu", "Escreva em poucas palavras o que aconteceu antes de enviar. Isso ajuda a entender e resolver o problema.");
+                d.Focus();
+                return null;
+            }
+            // anonimiza de novo: a pessoa pode ter colado uma mensagem com nomes na descrição
+            var conhecidos = cacheCalculos.Values.SelectMany(x => x).ToList();
+            return Relato.Mensagem(Relato.Anonimizar(d.Text, conhecidos), A<TextBox>("txtRelatoTecnico").Text);
+        }
+
+        private bool CopiarTexto(string t)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                try { Clipboard.SetText(t); return true; } catch { Thread.Sleep(80); }
+            }
+            return false;
+        }
+
+        private System.Windows.Threading.DispatcherTimer tempoRelato;
+        private void AvisoRelato(string texto)
+        {
+            var a = A<TextBlock>("txtRelatoAviso");
+            a.Text = texto; a.Visibility = Visibility.Visible;
+            if (tempoRelato == null)
+            {
+                tempoRelato = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(10) };
+                tempoRelato.Tick += (s, e) => { tempoRelato.Stop(); a.Visibility = Visibility.Collapsed; };
+            }
+            tempoRelato.Stop(); tempoRelato.Start();
         }
 
         private void ConfigurarApoio()
@@ -444,8 +550,8 @@ namespace PjeCalcBackup
 
         private void ConfigurarAbas()
         {
-            var abas = new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaNumeracao", "abaConfig" };
-            var paineis = new[] { "painelBackup", "painelRestaurar", "painelMigrar", "painelHistorico", "painelNumeracao", "painelConfig" };
+            var abas = new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaNumeracao", "abaConfig", "abaSobre", "abaRelato" };
+            var paineis = new[] { "painelBackup", "painelRestaurar", "painelMigrar", "painelHistorico", "painelNumeracao", "painelConfig", "painelSobre", "painelRelato" };
             for (int i = 0; i < abas.Length; i++)
             {
                 int k = i;
@@ -453,6 +559,9 @@ namespace PjeCalcBackup
                 {
                     for (int j = 0; j < paineis.Length; j++)
                         A<FrameworkElement>(paineis[j]).Visibility = j == k ? Visibility.Visible : Visibility.Collapsed;
+                    // as abas Sobre e Relatar um problema só existem enquanto estão abertas (vêm do rodapé)
+                    A<RadioButton>("abaSobre").Visibility = abas[k] == "abaSobre" ? Visibility.Visible : Visibility.Collapsed;
+                    A<RadioButton>("abaRelato").Visibility = abas[k] == "abaRelato" ? Visibility.Visible : Visibility.Collapsed;
                     if (abas[k] == "abaHistorico") CarregarHistorico();
                     if (abas[k] == "abaNumeracao" && numeracao != null) numeracao.Ativar();
                     if (numeracao != null) numeracao.AtualizarFaixa();
@@ -462,7 +571,7 @@ namespace PjeCalcBackup
 
         private void TravarAbas(bool travar, string excetoPainel)
         {
-            foreach (var a in new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaNumeracao", "abaConfig" })
+            foreach (var a in new[] { "abaBackup", "abaRestaurar", "abaMigrar", "abaHistorico", "abaNumeracao", "abaConfig", "abaSobre", "abaRelato" })
             {
                 var r = A<RadioButton>(a);
                 r.IsEnabled = !travar || r.IsChecked == true;
@@ -539,7 +648,7 @@ namespace PjeCalcBackup
                     }));
                 }
                 // depois de contar: alguma versão ainda reserva 32 números? (faixa no topo)
-                if (!cts.IsCancellationRequested) NaTela(() => numeracao.VerificarReservas());
+                if (!cts.IsCancellationRequested) NaTela(() => { numeracao.VerificarReservas(); VerificarVersaoNova(); pjeCalcOficial.Verificar(itens.Select(x => x.Inst.Versao).ToList()); });
             }, TaskCreationOptions.LongRunning);
         }
 
@@ -568,8 +677,76 @@ namespace PjeCalcBackup
                         alvo.TextoCalculos = l == null ? "" : (l.Count == 1 ? "1 cálculo" : l.Count + " cálculos");
                     });
                 }
-                NaTela(() => numeracao.VerificarReservas());
+                NaTela(() => { numeracao.VerificarReservas(); VerificarVersaoNova(); });
             });
+        }
+
+        // ============================================================ versão nova do PJe-Calc sem cálculos
+
+        private InstalacaoVM migrarOrigem, migrarDestino;
+
+        /// <summary>A versão mais nova instalada ainda não tem cálculos e uma anterior tem: oferece levar os cálculos (faixa no topo).</summary>
+        private void VerificarVersaoNova()
+        {
+            migrarOrigem = migrarDestino = null;
+            var faixa = A<Border>("avisoMigrar");
+            faixa.Visibility = Visibility.Collapsed;
+            var lista = vm.Instalacoes.ToList();
+            if (lista.Count < 2) return;
+            var nova = lista.OrderByDescending(i => VersaoOrdenavel(i.Inst.Versao)).First();
+            if (config.MigracaoAvisoIgnorado.Contains(nova.Pasta, StringComparer.OrdinalIgnoreCase)) return;
+
+            List<CalculoInfo> calc;
+            // recém-instalada: o instalador do TRT8 já traz um banco vazio; o passo da primeira abertura o programa faz sozinho.
+            // Só pede para abrir pelo atalho se a pasta estiver diferente disso (sem banco, ou num estado que não conhecemos).
+            bool semBanco = nova.Estado == EstadoInstalacao.SemBanco || (nova.Inst.PrecisaPrimeiraAbertura && !nova.Inst.PodePrepararPrimeiraAbertura);
+            bool vazia = semBanco || (cacheCalculos.TryGetValue(nova.Pasta, out calc) && calc.Count == 0);
+            if (!vazia) return;
+            string vNova = VersaoOrdenavel(nova.Inst.Versao);
+            var origem = lista
+                .Where(i => i != nova && string.CompareOrdinal(VersaoOrdenavel(i.Inst.Versao), vNova) < 0
+                            && cacheCalculos.TryGetValue(i.Pasta, out calc) && calc.Count > 0)
+                .OrderByDescending(i => VersaoOrdenavel(i.Inst.Versao)).FirstOrDefault();
+            if (origem == null) return;
+
+            int n = cacheCalculos[origem.Pasta].Count;
+            string calculos = n == 1 ? "o cálculo" : "os " + n + " cálculos";
+            migrarOrigem = origem; migrarDestino = nova;
+            var btn = A<Button>("btnMigrarAgora");
+            if (semBanco)
+            {
+                A<TextBlock>("txtAvisoMigrar").Text = "O PJe-Calc " + nova.Inst.Versao + " está instalado, mas ainda não foi aberto. Abra-o uma vez pelo atalho oficial e feche; " +
+                    "depois o programa leva " + calculos + " da " + origem.Inst.Versao + " para ele.";
+                btn.Content = "Já abri, procurar de novo";
+            }
+            else
+            {
+                A<TextBlock>("txtAvisoMigrar").Text = "O PJe-Calc " + nova.Inst.Versao + " está instalado e ainda sem cálculos. Levar " + calculos + " da " + origem.Inst.Versao + " para ele?";
+                btn.Content = "Levar os cálculos";
+            }
+            faixa.Visibility = Visibility.Visible;
+        }
+
+        private void ConfigurarAvisoMigrar()
+        {
+            A<Button>("btnFecharMigrar").Click += (s, e) =>
+            {
+                A<Border>("avisoMigrar").Visibility = Visibility.Collapsed;
+                if (migrarDestino != null && !config.MigracaoAvisoIgnorado.Contains(migrarDestino.Pasta, StringComparer.OrdinalIgnoreCase))
+                { config.MigracaoAvisoIgnorado.Add(migrarDestino.Pasta); config.Salvar(); }
+            };
+            A<Button>("btnMigrarAgora").Click += (s, e) =>
+            {
+                if (executando) { Avisar(TipoDialogo.Info, "Aguarde", "Termine a operação em andamento antes."); return; }
+                if (migrarOrigem == null || migrarDestino == null) return;
+                if (migrarDestino.Estado == EstadoInstalacao.SemBanco || (migrarDestino.Inst.PrecisaPrimeiraAbertura && !migrarDestino.Inst.PodePrepararPrimeiraAbertura)) { ProcurarInstalacoes(); return; }
+                var o = migrarOrigem; var d = migrarDestino;
+                A<Border>("avisoMigrar").Visibility = Visibility.Collapsed;
+                A<RadioButton>("abaMigrar").IsChecked = true;
+                asMg.Ir(0);
+                A<ComboBox>("cmbOrigemMg").SelectedItem = o;
+                A<ComboBox>("cmbDestinoMg").SelectedItem = d;
+            };
         }
 
         /// <summary>Cálculos de uma instalação (lidos do banco, sem abrir o PJe-Calc). Usa cache.</summary>
@@ -719,7 +896,11 @@ namespace PjeCalcBackup
                     if (!vm.ExportarPjc && !vm.CopiarBanco) { Avisar(TipoDialogo.Info, "Nada para fazer", "Escolha exportar os cálculos, copiar o banco, ou os dois."); return false; }
                     if (!DestinoValido()) return false;
                     if (vm.ExportarPjc && !NavegadorOk()) return false;
-                    return ConfirmarInicio("Antes de começar", null, "Já salvei, fazer backup", vm.Instalacoes.Where(x => x.Selecionada && x.Selecionavel).Select(x => x.Inst));
+                    var envolvidas = vm.Instalacoes.Where(x => x.Selecionada && x.Selecionavel).Select(x => x.Inst).ToList();
+                    int? marcados = vm.CalculosBackup.Count > 0 ? vm.CalculosBackup.Count(x => !x.EhGrupo && x.Selecionado) : (int?)null;
+                    string semEspaco = Backup.ProblemaDeEspaco(envolvidas, new OpcoesBackup { Destino = config.Destino, ExportarPjc = vm.ExportarPjc, CopiarBanco = vm.CopiarBanco }, marcados);
+                    if (semEspaco != null) { Avisar(TipoDialogo.Aviso, "Pouco espaço na pasta de backups", semEspaco); return false; }
+                    return ConfirmarInicio("Antes de começar", null, "Já salvei, fazer backup", envolvidas);
                 }
                 return true;
             };

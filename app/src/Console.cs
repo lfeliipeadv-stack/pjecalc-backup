@@ -349,6 +349,8 @@ namespace PjeCalcBackup
             if (op.ExportarPjc) { op.SoAlterados = SimNao("Backup rápido (exportar só os cálculos novos ou alterados; os outros são copiados do backup anterior)?", config.BackupRapido); config.BackupRapido = op.SoAlterados; config.Salvar(); }
             if (!op.ExportarPjc && !op.CopiarBanco) { Aviso("Nada para fazer."); Pausa(); return; }
             if (op.ExportarPjc && Navegador.Localizar() == null) { Aviso("É preciso ter o Microsoft Edge ou o Google Chrome."); Pausa(); return; }
+            string semEspaco = Backup.ProblemaDeEspaco(escolhidas, op, null);
+            if (semEspaco != null) { Aviso(semEspaco.Replace("\n\n", " ")); Pausa(); return; }
             if (!AvisoInicial(null, escolhidas)) return;
 
             Cabecalho("Fazer backup  ·  etapa 4 de 4: backup");
@@ -636,13 +638,21 @@ namespace PjeCalcBackup
         private void FluxoSobre()
         {
             Cabecalho("Sobre e apoie este projeto");
-            Linha(ConsoleColor.White, "  Este programa nasceu de uma dificuldade real no dia a dia da advocacia: ao instalar uma");
-            Linha(ConsoleColor.White, "  versão nova do PJe-Calc, os cálculos não vão junto, e a única saída era exportar e importar");
-            Linha(ConsoleColor.White, "  um por um, manualmente, o que levava horas. O PJe-Calc Backup faz isso de forma automática");
-            Linha(ConsoleColor.White, "  e segura, com conferência no final.");
+            Linha(ConsoleColor.White, "  O PJe-Calc Cidadão é usado todos os dias por advogados, peritos, contadores, calculistas e");
+            Linha(ConsoleColor.White, "  servidores da Justiça do Trabalho. Ele guarda os cálculos dentro da pasta de cada versão, e:");
+            Linha(ConsoleColor.Gray, "   × não faz backup em lote: os .PJC são exportados um por um, e não há backup automático;");
+            Linha(ConsoleColor.Gray, "   × cada versão nova começa vazia: levar os cálculos, um por um, toma horas;");
+            Linha(ConsoleColor.Gray, "   × copiar o banco à mão de uma versão para outra muitas vezes causa erros;");
+            Linha(ConsoleColor.Gray, "   × tudo fica num computador só: um HD que estraga ou um banco corrompido leva tudo;");
+            Linha(ConsoleColor.Gray, "   × a numeração pula (do 2 para o 33) e importar de novo cria cálculos repetidos.");
+            Console.WriteLine();
+            Linha(ConsoleColor.White, "  O PJe-Calc Backup nasceu dessa dificuldade real, no dia a dia da advocacia. Ele faz em poucos");
+            Linha(ConsoleColor.White, "  cliques o backup, a restauração e a migração de todos os cálculos, pelo caminho oficial do");
+            Linha(ConsoleColor.White, "  PJe-Calc (exportar e importar .PJC), com conferência no final.");
             Console.WriteLine();
             Linha(ConsoleColor.Gray, "  Projeto independente, gratuito e de código aberto, feito no Brasil.");
-            Linha(ConsoleColor.DarkGray, "  Não oficial: sem vínculo com nenhum TRT, com o CSJT ou com a equipe do PJe-Calc.");
+            Linha(ConsoleColor.DarkGray, "  O PJe-Calc é desenvolvido pelo TRT da 8ª Região e adotado pelo CSJT em toda a Justiça do Trabalho.");
+            Linha(ConsoleColor.DarkGray, "  Não oficial: sem vínculo com o TRT da 8ª Região, com o CSJT ou com a equipe do PJe-Calc.");
             Linha(ConsoleColor.DarkGray, "  Licença MIT: pode usar, copiar, modificar e compartilhar, mantendo o aviso de autoria; sem garantia.");
             Linha(ConsoleColor.DarkGray, "  " + Atualizacao.UrlProjeto);
             Console.WriteLine();
@@ -895,6 +905,19 @@ namespace PjeCalcBackup
                 return 1;
             }
             if (op.ExportarPjc && Navegador.Localizar() == null) { Linha(ConsoleColor.Yellow, "Sem Edge/Chrome: só o banco de dados será copiado."); op.ExportarPjc = false; }
+            string semEspaco = Backup.ProblemaDeEspaco(escolhidas, op, null);
+            if (semEspaco != null)
+            {
+                string curto = semEspaco.Split(new[] { "\n\n" }, StringSplitOptions.None)[0] + " " + semEspaco.Split(new[] { "\n\n" }, StringSplitOptions.None)[1];
+                Linha(ConsoleColor.Red, curto);
+                if (agendado)
+                {
+                    Agendador.SalvarResultado(false, "sem espaço na pasta de backups (" + curto + ")", null);
+                    if (config.Sons) Avisos.Som(false);
+                    if (config.Notificacoes) Avisos.NotificarEsperando("Backup automático não feito", "Pouco espaço na pasta de backups. " + curto, false);
+                }
+                return 1;
+            }
             emOperacao = true; ResultadoBackup r; try { r = Backup.Executar(escolhidas, op, this); } finally { emOperacao = false; }
             FimProgresso();
             bool ok = r.Falhas == 0;

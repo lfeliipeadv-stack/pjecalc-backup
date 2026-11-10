@@ -246,6 +246,59 @@ namespace PjeCalcBackup
             catch { }
         }
 
+        // ===================================================================== ESPAÇO EM DISCO
+
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Unicode, SetLastError = true)]
+        private static extern bool GetDiskFreeSpaceEx(string pasta, out ulong livreParaOUsuario, out ulong total, out ulong livreTotal);
+
+        /// <summary>Espaço livre (bytes) no disco da pasta, ou null se não der para saber. Funciona com pendrive e pasta de rede.</summary>
+        public static long? EspacoLivre(string pasta)
+        {
+            // Só para testes: PJECALC_BACKUP_ESPACO_LIVRE=bytes simula um disco quase cheio.
+            long simulado;
+            if (long.TryParse(Environment.GetEnvironmentVariable("PJECALC_BACKUP_ESPACO_LIVRE") ?? "", out simulado)) return simulado;
+            try
+            {
+                string p = Path.GetFullPath(pasta);
+                while (!string.IsNullOrEmpty(p) && !Directory.Exists(p)) p = Path.GetDirectoryName(p);
+                if (string.IsNullOrEmpty(p)) return null;
+                ulong livre, total, livreTotal;
+                if (!GetDiskFreeSpaceEx(p.EndsWith("\\") ? p : p + "\\", out livre, out total, out livreTotal)) return null;
+                return (long)Math.Min(livre, (ulong)long.MaxValue);
+            }
+            catch { return null; }
+        }
+
+        /// <summary>Estimativa folgada do espaço que o backup ocupa: o banco compactado nunca passa do tamanho do banco,
+        /// e cada .PJC tem dezenas de KB (conta 200 KB). Sem a contagem dos cálculos, usa o tamanho do banco também para os .PJC.</summary>
+        public static long EspacoNecessario(IEnumerable<Instalacao> instalacoes, OpcoesBackup op, int? calculosPjc)
+        {
+            long banco = 0;
+            foreach (var i in instalacoes) { try { if (File.Exists(i.ArquivoBanco)) banco += new FileInfo(i.ArquivoBanco).Length; } catch { } }
+            long n = 20L * 1024 * 1024; // folga para o relatório, o backup.json e o sistema de arquivos
+            if (op.CopiarBanco) n += banco;
+            if (op.ExportarPjc) n += calculosPjc.HasValue ? calculosPjc.Value * 200L * 1024 : banco;
+            return n;
+        }
+
+        /// <summary>Mensagem para o usuário se o destino não tiver espaço para o backup; null se houver espaço (ou se não der para saber).</summary>
+        public static string ProblemaDeEspaco(IEnumerable<Instalacao> instalacoes, OpcoesBackup op, int? calculosPjc)
+        {
+            long? livre = EspacoLivre(op.Destino);
+            if (livre == null) return null;
+            long precisa = EspacoNecessario(instalacoes, op, calculosPjc);
+            if (livre.Value >= precisa) return null;
+            return "Não há espaço suficiente em " + op.Destino + ".\n\nLivre: " + Tamanho(livre.Value) + ". O backup precisa de cerca de " + Tamanho(precisa) +
+                ".\n\nLibere espaço nesse disco ou pendrive, ou escolha outra pasta de backups. Nada foi feito.";
+        }
+
+        public static string Tamanho(long bytes)
+        {
+            if (bytes >= 1024L * 1024 * 1024) return (bytes / (1024.0 * 1024 * 1024)).ToString("0.0") + " GB";
+            if (bytes >= 1024L * 1024) return (bytes / (1024.0 * 1024)).ToString("0") + " MB";
+            return Math.Max(1, bytes / 1024) + " KB";
+        }
+
         // ===================================================================== BACKUP
 
         public static ResultadoBackup Executar(List<Instalacao> instalacoes, OpcoesBackup op, IRetornoBackup ui)

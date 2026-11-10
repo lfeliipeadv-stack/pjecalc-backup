@@ -285,6 +285,7 @@ namespace PjeCalcBackup
         public bool Notificacoes { get { return c.Notificacoes; } set { c.Notificacoes = value; Avisar("Notificacoes"); } }
         public bool Lembrete { get { return c.Lembrete; } set { c.Lembrete = value; Avisar("Lembrete"); } }
         public bool VerificarAtualizacoes { get { return c.VerificarAtualizacoes; } set { c.VerificarAtualizacoes = value; Avisar("VerificarAtualizacoes"); } }
+        public bool VerificarPjeCalc { get { return c.VerificarPjeCalc; } set { c.VerificarPjeCalc = value; c.Salvar(); Avisar("VerificarPjeCalc"); } }
         public bool AbrirPastaAoTerminar { get { return c.AbrirPastaAoTerminar; } set { c.AbrirPastaAoTerminar = value; Avisar("AbrirPastaAoTerminar"); } }
         public bool ReabrirPjeCalc { get { return c.ReabrirPjeCalc; } set { c.ReabrirPjeCalc = value; Avisar("ReabrirPjeCalc"); } }
     }

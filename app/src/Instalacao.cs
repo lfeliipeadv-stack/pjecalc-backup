@@ -400,9 +400,28 @@ namespace PjeCalcBackup
 
         // ------------------------------------------------------- ligar/desligar
 
+        private string PersistenciaTmp { get { return Path.Combine(Pasta, @"tomcat\webapps\pjecalc\WEB-INF\classes\META-INF\persistence.xml.tmp"); } }
+        private string Persistencia { get { return Path.Combine(Pasta, @"tomcat\webapps\pjecalc\WEB-INF\classes\META-INF\persistence.xml"); } }
+
         public bool PrecisaPrimeiraAbertura
         {
-            get { return File.Exists(Path.Combine(Pasta, @"tomcat\webapps\pjecalc\WEB-INF\classes\META-INF\persistence.xml.tmp")); }
+            get { return File.Exists(PersistenciaTmp); }
+        }
+
+        /// <summary>Versão recém-instalada no estado exato de quem acabou de extrair o instalador do TRT8: banco vazio na pasta
+        /// e só o persistence.xml.tmp. Nesse caso o programa faz sozinho o único passo da primeira abertura do PJe-Calc.</summary>
+        public bool PodePrepararPrimeiraAbertura
+        {
+            get { return File.Exists(PersistenciaTmp) && !File.Exists(Persistencia) && File.Exists(ArquivoBanco); }
+        }
+
+        /// <summary>O mesmo que o PJe-Calc faz na primeira abertura (conferido na 2.16.0 comparando a pasta antes e depois):
+        /// o persistence.xml.tmp passa a ser o persistence.xml, com o mesmo conteúdo. Nada mais muda.</summary>
+        public void PrepararPrimeiraAbertura()
+        {
+            if (!PodePrepararPrimeiraAbertura)
+                throw new Exception("esta versão nunca foi aberta; abra-a uma vez pelo atalho do PJe-Calc e feche pela bandeja");
+            File.Move(PersistenciaTmp, Persistencia);
         }
 
         /// <summary>Lê as opções de Java do iniciarPjeCalc.bat (fuso, codificação, memória...).</summary>
@@ -429,7 +448,10 @@ namespace PjeCalcBackup
         public void Ligar(Action<string> log, Func<bool> cancelado)
         {
             if (PrecisaPrimeiraAbertura)
-                throw new Exception("esta versão nunca foi aberta; abra-a uma vez pelo atalho do PJe-Calc e feche pela bandeja");
+            {
+                PrepararPrimeiraAbertura(); // lança o aviso de antes se a pasta não estiver como a de uma instalação nova
+                if (log != null) log("PJe-Calc " + Versao + " preparado para o primeiro uso (o mesmo passo que o PJe-Calc faz na primeira abertura).");
+            }
             if (PortaOcupada(PortaHttp))
                 throw new Exception("a porta " + PortaHttp + " está em uso por outro PJe-Calc aberto");
 
