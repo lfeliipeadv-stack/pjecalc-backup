@@ -573,10 +573,9 @@
     <!-- ======================================================== cabeçalho -->
     <Border Grid.Row="0" Padding="24,14" Background="{DynamicResource Cabecalho}">
       <DockPanel>
-        <Border DockPanel.Dock="Left" Width="42" Height="42" CornerRadius="11" Background="#33FFFFFF" Margin="0,0,16,0">
-          <Path Fill="{DynamicResource TextoCabecalho}" Stretch="Uniform" Margin="11"
-                Data="M12,2 L20,5.5 L20,11 C20,16 16.6,20.4 12,22 C7.4,20.4 4,16 4,11 L4,5.5 Z M11,7 L11,12.6 L8.7,10.3 L7.3,11.7 L12,16.4 L16.7,11.7 L15.3,10.3 L13,12.6 L13,7 Z"/>
-        </Border>
+        <!-- logo: a versão (branca ou azul-marinho) muda com a cor do cabeçalho, em Tema.Aplicar -->
+        <Image DockPanel.Dock="Left" Width="46" Height="46" Margin="0,0,16,0" Source="{DynamicResource LogoCabecalho}"
+               RenderOptions.BitmapScalingMode="HighQuality" AutomationProperties.Name="Logo do PJe-Calc Backup"/>
         <StackPanel VerticalAlignment="Center">
           <TextBlock Text="PJe-Calc Backup" FontSize="22" FontWeight="SemiBold" Foreground="{DynamicResource TextoCabecalho}"/>
           <TextBlock Text="Backup, restauração e migração dos cálculos de todas as versões do PJe-Calc Cidadão deste computador."

@@ -137,6 +137,59 @@ namespace PjeCalcBackup
             return b;
         }
 
+        // ------------------------------------------------------------ logo
+        // "Cofre do cálculo": um cofre cuja maçaneta é o sinal de igual (guardado com segurança + cálculo).
+        // Azul-marinho e âmbar. Coordenadas num quadrado de 120 × 120.
+        // O mesmo desenho está em ferramentas\gerar-icone.ps1 (app.ico e as imagens do site).
+
+        private static Pen Traco(Brush b, double largura)
+        {
+            var p = new Pen(b, largura) { StartLineCap = PenLineCap.Round, EndLineCap = PenLineCap.Round, LineJoin = PenLineJoin.Round };
+            p.Freeze();
+            return p;
+        }
+
+        private static Geometry Ret(double x, double y, double l, double a, double raio) { return new RectangleGeometry(new Rect(x, y, l, a), raio, raio); }
+        private static Geometry Circ(double x, double y, double raio) { return new EllipseGeometry(new Point(x, y), raio, raio); }
+
+        /// <summary>Logo do programa. fundoBranco = versão clara, invertida (para cabeçalhos escuros);
+        /// senão, a versão azul-marinho (a do ícone do programa, para cabeçalhos claros).</summary>
+        public static DrawingImage Logo(bool fundoBranco)
+        {
+            Brush marinho = Pincel("#12355B"), ambar = Pincel("#F2A900"), branco = Pincel("#FFFFFF");
+            var g = new DrawingGroup();
+            if (!fundoBranco)
+            {
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(0, 0, 120, 120, 26)));                        // fundo
+                g.Children.Add(new GeometryDrawing(branco, null, Ret(22, 18, 76, 78, 11)));                         // corpo do cofre
+                g.Children.Add(new GeometryDrawing(branco, null, Ret(30, 94, 13, 8, 2)));                           // pés
+                g.Children.Add(new GeometryDrawing(branco, null, Ret(77, 94, 13, 8, 2)));
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(25, 32, 6, 12, 2)));                          // dobradiças
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(25, 70, 6, 12, 2)));
+                g.Children.Add(new GeometryDrawing(marinho, null, Circ(62, 57, 27)));                               // porta
+                g.Children.Add(new GeometryDrawing(null, Traco(ambar, 4.5), Circ(62, 57, 20)));                     // aro
+                g.Children.Add(new GeometryDrawing(ambar, null, Ret(48, 47.5, 28, 8, 4)));                          // "=" (maçaneta)
+                g.Children.Add(new GeometryDrawing(ambar, null, Ret(48, 59.5, 28, 8, 4)));
+            }
+            else
+            {
+                g.Children.Add(new GeometryDrawing(branco, Traco(marinho, 3), Ret(1.5, 1.5, 117, 117, 25)));
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(22, 18, 76, 78, 11)));
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(30, 94, 13, 8, 2)));
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(77, 94, 13, 8, 2)));
+                g.Children.Add(new GeometryDrawing(branco, null, Ret(25, 32, 6, 12, 2)));
+                g.Children.Add(new GeometryDrawing(branco, null, Ret(25, 70, 6, 12, 2)));
+                g.Children.Add(new GeometryDrawing(null, Traco(ambar, 4.5), Circ(62, 57, 27.5)));                   // aro por fora da porta
+                g.Children.Add(new GeometryDrawing(branco, null, Circ(62, 57, 22)));
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(48, 47.5, 28, 8, 4)));
+                g.Children.Add(new GeometryDrawing(marinho, null, Ret(48, 59.5, 28, 8, 4)));
+            }
+            g.Freeze();
+            var img = new DrawingImage(g);
+            img.Freeze();
+            return img;
+        }
+
         /// <summary>Aplica o tema nos recursos do aplicativo (as telas usam DynamicResource e mudam na hora).</summary>
         public static void Aplicar(ResourceDictionary r, string modo, int paleta)
         {
@@ -156,6 +209,8 @@ namespace PjeCalcBackup
             r["SobrePrimaria"] = Pincel(PedeTextoEscuro(prim) ? "#1F2933" : "#FFFFFF");
             string cab = Misturar(escuro ? p.DCA : p.CA, escuro ? p.DCB : p.CB, 0.5);
             if (PedeTextoEscuro(cab)) { r["TextoCabecalho"] = Pincel("#1F2933"); r["TextoCabecalhoSuave"] = Pincel("#4A5663"); }
+            // logo do cabeçalho: a versão branca sobre cabeçalho escuro, a azul-marinho sobre cabeçalho claro
+            r["LogoCabecalho"] = Logo(!PedeTextoEscuro(cab));
 
             // a cor da paleta usada como texto (links, títulos do registro) precisa contrastar com o fundo
             string texto = prim;

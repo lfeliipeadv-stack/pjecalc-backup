@@ -25,8 +25,8 @@ using Microsoft.Win32;
 [assembly: AssemblyTitle("PJe-Calc Backup")]
 [assembly: AssemblyProduct("PJe-Calc Backup")]
 [assembly: AssemblyDescription("Backup, restauração e migração dos cálculos do PJe-Calc Cidadão (projeto independente, não oficial)")]
-[assembly: AssemblyVersion("1.5.0.0")]
-[assembly: AssemblyFileVersion("1.5.0.0")]
+[assembly: AssemblyVersion("1.5.1.0")]
+[assembly: AssemblyFileVersion("1.5.1.0")]
 
 namespace PjeCalcBackup
 {

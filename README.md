@@ -1,3 +1,9 @@
+<p align="center">
+<picture>
+<source media="(prefers-color-scheme: dark)" srcset="docs/logo-escuro.png">
+<img src="docs/logo.png" alt="Logo do PJe-Calc Backup: um cofre" width="110">
+</picture>
+</p>
 <h1 align="center">PJe-Calc Backup</h1>
 
 <p align="center">
