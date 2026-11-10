@@ -3,13 +3,20 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PJe-Calc Backup</title>
+<title>PJe-Calc Backup: backup e migração dos cálculos do PJe-Calc Cidadão</title>
 <meta name="description" content="Programa gratuito para Windows que faz backup, restauração e migração dos cálculos do PJe-Calc Cidadão, em todas as versões instaladas, e deixa a numeração dos cálculos em ordem.">
-<meta property="og:title" content="PJe-Calc Backup">
-<meta property="og:description" content="Backup, restauração e migração dos cálculos do PJe-Calc Cidadão. Gratuito e de código aberto.">
-<meta property="og:image" content="https://lfeliipeadv-stack.github.io/pjecalc-backup/tela-backup.png">
+<link rel="canonical" href="https://lfeliipeadv-stack.github.io/pjecalc-backup/">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="pt_BR">
+<meta property="og:site_name" content="PJe-Calc Backup">
+<meta property="og:url" content="https://lfeliipeadv-stack.github.io/pjecalc-backup/">
+<meta property="og:title" content="PJe-Calc Backup: backup dos cálculos do PJe-Calc, grátis">
+<meta property="og:description" content="Backup, restauração e migração dos cálculos do PJe-Calc Cidadão, em todas as versões instaladas. Gratuito e de código aberto.">
+<meta property="og:image" content="https://lfeliipeadv-stack.github.io/pjecalc-backup/compartilhar.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="PJe-Calc Backup: backup dos cálculos do PJe-Calc, grátis e de código aberto">
+<meta name="twitter:card" content="summary_large_image">
 <link rel="icon" type="image/png" href="icone.png">
 <style>
 :root {
@@ -17,12 +24,16 @@
   --azul-escuro: #1f4570;
   --azul-claro: #e8eff7;
   --fundo: #f4f6f9;
+  --faixa: #ffffff;
+  --faixa-azul: #eaf1f8;
   --cartao: #ffffff;
   --texto: #1d2733;
   --suave: #5a6675;
   --borda: #dde3ea;
   --aviso: #fff6dc;
   --aviso-borda: #e9c96a;
+  --verde: #2f8a57;
+  --vermelho: #c0453a;
   --sombra: 0 1px 3px rgba(20, 40, 70, .08), 0 8px 24px rgba(20, 40, 70, .06);
 }
 @media (prefers-color-scheme: dark) {
@@ -31,12 +42,16 @@
     --azul-escuro: #8ab8e6;
     --azul-claro: #1c2a3a;
     --fundo: #10161d;
-    --cartao: #18212b;
+    --faixa: #151d26;
+    --faixa-azul: #142233;
+    --cartao: #1b2530;
     --texto: #e6ecf2;
     --suave: #9aa8b7;
     --borda: #2a3644;
     --aviso: #2b2616;
     --aviso-borda: #7a6526;
+    --verde: #5cc48a;
+    --vermelho: #f07a6e;
     --sombra: 0 1px 3px rgba(0, 0, 0, .4);
   }
 }
@@ -53,60 +68,120 @@ body {
 a { color: var(--azul); }
 img { max-width: 100%; height: auto; display: block; }
 code { font-family: Consolas, "Cascadia Mono", monospace; font-size: .92em; background: var(--azul-claro); padding: 1px 5px; border-radius: 4px; }
-.largura { max-width: 1080px; margin: 0 auto; padding: 0 16px; }
+button { font: inherit; }
+.largura { max-width: 1120px; margin: 0 auto; padding: 0 16px; }
+
+/* faixas */
+.faixa { padding: 64px 0; background: var(--fundo); scroll-margin-top: 40px; }
+.faixa.branca { background: var(--faixa); border-top: 1px solid var(--borda); border-bottom: 1px solid var(--borda); }
+.faixa.azul { background: var(--faixa-azul); }
+h2 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -.4px; }
+.sub { color: var(--suave); margin: 0 0 30px; max-width: 760px; }
+.centro { text-align: center; }
+.centro .sub { margin-left: auto; margin-right: auto; }
 
 /* topo */
-.topo { background: linear-gradient(160deg, #24507d, #2c5d8f 60%, #3a6fa3); color: #fff; }
+.topo { background: linear-gradient(160deg, #224c77, #2c5d8f 55%, #3a6fa3); color: #fff; position: relative; }
 .barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; }
 .marca { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 600; font-size: 18px; }
 .marca img { width: 32px; height: 32px; border-radius: 8px; }
-.menu { display: flex; gap: 18px; flex-wrap: wrap; }
+.menu { display: flex; gap: 20px; align-items: center; }
 .menu a { color: #dbe8f5; text-decoration: none; font-size: 15px; }
 .menu a:hover { color: #fff; text-decoration: underline; }
-.heroi { display: grid; grid-template-columns: 1fr 1.15fr; gap: 40px; align-items: center; padding: 36px 0 56px; }
-.heroi h1 { font-size: 40px; line-height: 1.15; margin: 0 0 14px; letter-spacing: -.5px; }
-.heroi p.lead { font-size: 19px; color: #dbe8f5; margin: 0 0 26px; }
-.botoes { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.abrir-menu { display: none; background: none; border: 1px solid rgba(255, 255, 255, .35); color: #fff; border-radius: 8px; width: 40px; height: 36px; cursor: pointer; }
+.abrir-menu svg { width: 20px; height: 20px; display: block; margin: auto; }
+.gaveta { display: none; }
+
+.heroi { display: grid; grid-template-columns: 1fr 1.2fr; gap: 44px; align-items: center; padding: 40px 0 64px; }
+.heroi h1 { font-size: 42px; line-height: 1.12; margin: 0 0 16px; letter-spacing: -.6px; }
+.heroi p.lead { font-size: 19px; color: #dbe8f5; margin: 0 0 28px; }
+.botoes { display: flex; flex-wrap: wrap; gap: 14px; align-items: center; }
 .botao {
   display: inline-flex; align-items: center; gap: 10px;
   background: #fff; color: #1f4570; font-weight: 700; font-size: 18px;
-  padding: 14px 24px; border-radius: 10px; text-decoration: none;
+  padding: 14px 26px; border-radius: 10px; text-decoration: none; border: 0; cursor: pointer;
   box-shadow: 0 4px 14px rgba(0, 0, 0, .18);
 }
 .botao:hover { background: #eef4fb; }
 .botao svg { width: 22px; height: 22px; }
-.botao-sec { color: #fff; text-decoration: none; font-weight: 600; padding: 12px 6px; }
+.botao-sec { display: inline-flex; align-items: center; gap: 8px; color: #fff; background: none; border: 0; cursor: pointer; font-weight: 600; padding: 12px 6px; text-decoration: none; }
 .botao-sec:hover { text-decoration: underline; }
-.detalhe { font-size: 14px; color: #c5d7ea; margin-top: 12px; }
-.heroi .foto { border-radius: 10px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+.botao-sec svg { width: 26px; height: 26px; }
+.detalhe { font-size: 14px; color: #c5d7ea; margin: 14px 0 0; }
 .selos { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 18px; }
 .selo { font-size: 13px; background: rgba(255, 255, 255, .14); border: 1px solid rgba(255, 255, 255, .22); padding: 3px 10px; border-radius: 99px; color: #eaf2fa; }
-
-/* seções */
-section { padding: 56px 0 8px; scroll-margin-top: 24px; }
-#cmd { padding-top: 72px; }
-h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.3px; }
-.sub { color: var(--suave); margin: 0 0 28px; max-width: 760px; }
-.oficial {
-  margin: 28px 0 0; padding: 14px 18px; border-radius: 10px;
-  background: var(--cartao); border: 1px solid var(--borda); color: var(--suave); font-size: 15px;
+.vitrine { position: relative; display: block; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 10px; }
+.vitrine img { border-radius: 10px; box-shadow: 0 18px 50px rgba(0, 0, 0, .35); }
+.vitrine .play {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: inline-flex; align-items: center; gap: 10px;
+  background: rgba(16, 32, 52, .86); color: #fff; font-weight: 600; font-size: 16px;
+  padding: 12px 20px 12px 14px; border-radius: 99px; box-shadow: 0 6px 20px rgba(0, 0, 0, .3);
+  transition: transform .15s ease, background .15s ease;
 }
+.vitrine .play svg { width: 28px; height: 28px; }
+.vitrine:hover .play { background: rgba(16, 32, 52, .95); transform: translate(-50%, -50%) scale(1.04); }
+
+/* barra fixa */
+.fixa {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 9;
+  background: rgba(31, 69, 112, .96); backdrop-filter: blur(6px);
+  box-shadow: 0 2px 12px rgba(0, 0, 0, .2);
+  transform: translateY(-100%); transition: transform .2s ease;
+}
+.fixa.visivel { transform: none; }
+.fixa .largura { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; padding-bottom: 8px; }
+.fixa .marca img { width: 28px; height: 28px; }
+.fixa .menu a { font-size: 14px; }
+.botao-peq { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #1f4570; font-weight: 700; font-size: 15px; padding: 7px 14px; border-radius: 8px; text-decoration: none; white-space: nowrap; }
+.botao-peq svg { width: 16px; height: 16px; }
+.botao-peq:hover { background: #eef4fb; }
+
+/* aviso oficial e números */
+.oficial { margin: 0 0 22px; padding: 14px 18px; border-radius: 10px; background: var(--fundo); border: 1px solid var(--borda); color: var(--suave); font-size: 15px; }
 .oficial b { color: var(--texto); }
+.numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.numero { padding: 4px 0 4px 18px; border-left: 3px solid var(--azul); }
+.numero strong { display: block; font-size: 30px; line-height: 1.15; color: var(--azul); letter-spacing: -.5px; }
+.numero span { color: var(--suave); font-size: 15px; }
 
-.problema { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-.cartao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 20px; box-shadow: var(--sombra); }
-.cartao h3 { margin: 0 0 6px; font-size: 18px; }
-.cartao p { margin: 0; color: var(--suave); font-size: 16px; }
-.icone { width: 40px; height: 40px; border-radius: 10px; background: var(--azul-claro); color: var(--azul); display: grid; place-items: center; margin-bottom: 12px; }
-.icone svg { width: 22px; height: 22px; }
+/* antes e depois */
+.comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.coluna { border-radius: 12px; padding: 22px 24px; border: 1px solid var(--borda); background: var(--cartao); box-shadow: var(--sombra); }
+.coluna h3 { margin: 0 0 12px; font-size: 19px; }
+.coluna ul { list-style: none; margin: 0; padding: 0; }
+.coluna li { display: flex; gap: 10px; padding: 8px 0; border-top: 1px solid var(--borda); font-size: 16px; }
+.coluna li:first-child { border-top: 0; }
+.coluna li svg { flex: none; width: 20px; height: 20px; margin-top: 3px; }
+.coluna.sem li svg { color: var(--vermelho); }
+.coluna.com { border: 2px solid var(--azul); }
+.coluna.com li svg { color: var(--verde); }
 
-.funcoes { display: grid; grid-template-columns: repeat(2, 1fr); gap: 22px; }
-.funcao { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; box-shadow: var(--sombra); display: flex; flex-direction: column; }
-.funcao img { border-bottom: 1px solid var(--borda); cursor: zoom-in; }
-.funcao div { padding: 16px 20px 20px; }
-.funcao h3 { margin: 0 0 6px; font-size: 18px; }
-.funcao p { margin: 0; color: var(--suave); font-size: 16px; }
+/* abas */
+.abas { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 22px; }
+.aba {
+  display: inline-flex; align-items: center; gap: 8px;
+  border: 1px solid var(--borda); background: var(--cartao); color: var(--texto);
+  font-weight: 600; font-size: 15px; padding: 9px 16px; border-radius: 99px; cursor: pointer;
+}
+.aba svg { width: 18px; height: 18px; color: var(--azul); }
+.aba:hover { border-color: var(--azul); }
+.aba[aria-selected="true"] { background: var(--azul); border-color: var(--azul); color: #fff; }
+.aba[aria-selected="true"] svg { color: #fff; }
+@media (prefers-color-scheme: dark) { .aba[aria-selected="true"], .aba[aria-selected="true"] svg { color: #10161d; } }
+.painel { display: grid; grid-template-columns: 1.55fr 1fr; gap: 36px; align-items: center; }
+.painel[hidden] { display: none; }
+.painel img { border-radius: 10px; border: 1px solid var(--borda); box-shadow: var(--sombra); cursor: zoom-in; }
+.painel h3 { font-size: 24px; margin: 0 0 10px; letter-spacing: -.3px; }
+.painel p { margin: 0 0 14px; color: var(--suave); }
+.painel ul { list-style: none; margin: 0 0 18px; padding: 0; }
+.painel li { display: flex; gap: 10px; padding: 5px 0; font-size: 16px; }
+.painel li svg { flex: none; width: 20px; height: 20px; margin-top: 3px; color: var(--verde); }
+.painel .mais { font-weight: 600; font-size: 15px; text-decoration: none; }
+.painel .mais:hover { text-decoration: underline; }
+.dica { font-size: 14px; color: var(--suave); margin: 10px 0 0; text-align: center; }
 
+/* como usar */
 .passos { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; counter-reset: passo; }
 .passos li { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 20px; box-shadow: var(--sombra); counter-increment: passo; }
 .passos li::before {
@@ -116,43 +191,62 @@ h2 { font-size: 28px; margin: 0 0 8px; letter-spacing: -.3px; }
 @media (prefers-color-scheme: dark) { .passos li::before { color: #10161d; } }
 .passos h3 { margin: 0 0 4px; font-size: 17px; }
 .passos p { margin: 0; color: var(--suave); font-size: 15px; }
-
 .windows { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: center; margin-top: 22px; padding: 20px 22px; border-radius: 12px; background: var(--aviso); border: 1px solid var(--aviso-borda); }
 .windows h3 { margin: 0 0 6px; font-size: 18px; }
 .windows p { margin: 0 0 8px; font-size: 16px; }
-.janela-ms { background: #1a73c9; color: #fff; border-radius: 8px; padding: 18px 20px; font-family: "Segoe UI", sans-serif; font-size: 14px; box-shadow: var(--sombra); }
+.janela-ms { background: #1a73c9; color: #fff; border-radius: 8px; padding: 18px 20px; font-size: 14px; box-shadow: var(--sombra); }
 .janela-ms strong { display: block; font-size: 20px; font-weight: 400; margin-bottom: 8px; }
 .janela-ms .lk { text-decoration: underline; }
-.janela-ms .bts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; }
+.janela-ms .bts { display: flex; justify-content: flex-end; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
 .janela-ms .bts span { border: 1px solid #fff; padding: 4px 14px; }
 .janela-ms .bts .ativo { background: #fff; color: #1a73c9; font-weight: 600; }
 
-.seguro { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px 28px; list-style: none; padding: 0; margin: 0; }
-.seguro li { display: flex; gap: 12px; align-items: flex-start; }
-.seguro svg { flex: none; width: 22px; height: 22px; color: #2f8a57; margin-top: 3px; }
-@media (prefers-color-scheme: dark) { .seguro svg { color: #5cc48a; } }
+/* seguro e CMD */
+.duas { display: grid; grid-template-columns: 1fr 1fr; gap: 48px; align-items: start; }
+.seguro { list-style: none; padding: 0; margin: 0; }
+.seguro li { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; }
+.seguro li svg { flex: none; width: 22px; height: 22px; color: var(--verde); margin-top: 3px; }
 .seguro b { display: block; }
 .seguro span { color: var(--suave); font-size: 16px; }
+.cmd img { border-radius: 10px; box-shadow: var(--sombra); cursor: zoom-in; margin-top: 18px; }
+.cmd pre { background: #0f1720; color: #d7e3ef; border-radius: 10px; padding: 12px 16px; overflow-x: auto; font-size: 14px; margin: 14px 0 0; }
+.cmd pre code { background: none; padding: 0; color: inherit; }
+.cmd p { color: var(--suave); margin: 0; }
 
+/* perguntas */
 .faq details { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; margin-bottom: 10px; }
 .faq summary { cursor: pointer; padding: 14px 18px; font-weight: 600; list-style: none; display: flex; justify-content: space-between; gap: 12px; }
 .faq summary::-webkit-details-marker { display: none; }
 .faq summary::after { content: "+"; color: var(--azul); font-size: 22px; line-height: 1; }
 .faq details[open] summary::after { content: "–"; }
 .faq details p { margin: 0; padding: 0 18px 16px; color: var(--suave); font-size: 16px; }
+.faq .largura { max-width: 860px; }
 
-.apoie { display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center; }
+/* apoie */
+.apoie { display: grid; grid-template-columns: 1fr auto; gap: 28px; align-items: center; background: var(--cartao); border: 1px solid var(--borda); border-radius: 14px; padding: 26px 28px; box-shadow: var(--sombra); }
 .apoie img { width: 170px; border-radius: 10px; background: #fff; padding: 8px; border: 1px solid var(--borda); }
 .chave { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 6px; }
 .chave code { font-size: 15px; padding: 6px 10px; word-break: break-all; }
-.copiar { font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--borda); background: var(--cartao); color: var(--azul); border-radius: 8px; padding: 6px 12px; }
+.copiar { font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--borda); background: var(--cartao); color: var(--azul); border-radius: 8px; padding: 6px 12px; }
 
-.final { text-align: center; padding: 56px 0; }
-.final .botao { background: var(--azul); color: #fff; }
-@media (prefers-color-scheme: dark) { .final .botao { color: #10161d; } }
-.final .botao:hover { background: var(--azul-escuro); }
+/* baixar */
+.baixar { background: linear-gradient(160deg, #224c77, #2c5d8f 55%, #3a6fa3); color: #fff; padding: 64px 0; scroll-margin-top: 40px; }
+.baixar h2 { color: #fff; }
+.baixar .sub { color: #dbe8f5; }
+.baixar-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
+.requisitos { list-style: none; margin: 22px 0 0; padding: 0; }
+.requisitos li { display: flex; gap: 10px; padding: 5px 0; color: #e3eef8; }
+.requisitos svg { flex: none; width: 20px; height: 20px; margin-top: 3px; color: #9fe0b8; }
+.arquivos { background: rgba(255, 255, 255, .08); border: 1px solid rgba(255, 255, 255, .18); border-radius: 12px; overflow: hidden; }
+.arquivo { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 14px 18px; border-top: 1px solid rgba(255, 255, 255, .14); }
+.arquivo:first-child { border-top: 0; }
+.arquivo b { display: block; font-family: Consolas, "Cascadia Mono", monospace; font-size: 15px; font-weight: 600; word-break: break-all; }
+.arquivo span { color: #c5d7ea; font-size: 14px; }
+.arquivo a { flex: none; color: #fff; font-weight: 600; font-size: 14px; border: 1px solid rgba(255, 255, 255, .45); border-radius: 8px; padding: 6px 12px; text-decoration: none; white-space: nowrap; }
+.arquivo a:hover { background: rgba(255, 255, 255, .12); }
+.arquivo.principal a { background: #fff; color: #1f4570; border-color: #fff; }
 
-footer { border-top: 1px solid var(--borda); padding: 24px 0 40px; color: var(--suave); font-size: 14px; }
+footer { padding: 24px 0 40px; color: var(--suave); font-size: 14px; }
 footer .largura { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 12px; }
 footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
 
@@ -160,70 +254,38 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
 .bandeira { display: inline-block; width: 18px; height: 13px; vertical-align: -2px; margin-left: 6px; border-radius: 2px; box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); }
 .selo .bandeira { margin: 0 0 0 4px; width: 16px; height: 11px; vertical-align: -1px; }
 
-/* barra fixa que aparece ao rolar */
-.fixa {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 9;
-  background: rgba(31, 69, 112, .96); backdrop-filter: blur(6px);
-  box-shadow: 0 2px 12px rgba(0, 0, 0, .2);
-  transform: translateY(-100%); transition: transform .2s ease;
-}
-.fixa.visivel { transform: none; }
-.fixa .largura { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 8px; padding-bottom: 8px; }
-.fixa .menu a { font-size: 14px; }
-.botao-peq { display: inline-flex; align-items: center; gap: 6px; background: #fff; color: #1f4570; font-weight: 700; font-size: 15px; padding: 7px 14px; border-radius: 8px; text-decoration: none; white-space: nowrap; }
-.botao-peq svg { width: 16px; height: 16px; }
-.botao-peq:hover { background: #eef4fb; }
-
-/* números */
-.numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; margin-top: 18px; }
-.numero { background: var(--cartao); border: 1px solid var(--borda); border-radius: 12px; padding: 18px 20px; box-shadow: var(--sombra); }
-.numero strong { display: block; font-size: 30px; line-height: 1.1; color: var(--azul); letter-spacing: -.5px; }
-.numero span { color: var(--suave); font-size: 15px; }
-
-/* comparação */
-.comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.coluna { border-radius: 12px; padding: 20px 22px; border: 1px solid var(--borda); background: var(--cartao); box-shadow: var(--sombra); }
-.coluna h3 { margin: 0 0 12px; font-size: 18px; display: flex; align-items: center; gap: 8px; }
-.coluna ul { list-style: none; margin: 0; padding: 0; }
-.coluna li { display: flex; gap: 10px; padding: 7px 0; border-top: 1px solid var(--borda); font-size: 16px; }
-.coluna li:first-child { border-top: 0; }
-.coluna svg { flex: none; width: 20px; height: 20px; margin-top: 3px; }
-.coluna.sem svg { color: #c0453a; }
-.coluna.com { border-color: var(--azul); }
-.coluna.com svg { color: #2f8a57; }
-@media (prefers-color-scheme: dark) { .coluna.sem svg { color: #f07a6e; } .coluna.com svg { color: #5cc48a; } }
-
-/* versão para o CMD */
-.cmd { display: grid; grid-template-columns: 1fr 1.1fr; gap: 32px; align-items: center; }
-.cmd img { border-radius: 10px; box-shadow: var(--sombra); cursor: zoom-in; }
-.cmd pre { background: #0f1720; color: #d7e3ef; border-radius: 10px; padding: 14px 16px; overflow-x: auto; font-size: 14px; margin: 14px 0 0; }
-.cmd pre code { background: none; padding: 0; color: inherit; }
-.cmd ul { margin: 10px 0 0; padding-left: 20px; color: var(--suave); }
-
 /* foto ampliada */
-.zoom { position: fixed; inset: 0; background: rgba(5, 10, 18, .85); display: none; place-items: center; padding: 16px; z-index: 10; cursor: zoom-out; }
+.zoom { position: fixed; inset: 0; background: rgba(5, 10, 18, .88); display: none; place-items: center; padding: 16px; z-index: 20; cursor: zoom-out; }
 .zoom.aberto { display: grid; }
-.zoom img { max-height: 92vh; width: auto; border-radius: 8px; }
+.zoom img { max-height: 90vh; width: auto; border-radius: 8px; }
+.zoom .fechar { position: absolute; top: 12px; right: 16px; color: #fff; background: none; border: 0; font-size: 32px; line-height: 1; cursor: pointer; }
 
-@media (max-width: 900px) {
-  .heroi { grid-template-columns: 1fr; padding-top: 20px; }
+@media (max-width: 960px) {
+  .heroi { grid-template-columns: 1fr; padding-top: 16px; gap: 30px; }
+  .heroi h1 { font-size: 34px; }
   .numeros { grid-template-columns: repeat(2, 1fr); }
-  .cmd { grid-template-columns: 1fr; }
-  .heroi h1 { font-size: 32px; }
   .passos { grid-template-columns: repeat(2, 1fr); }
-  .problema { grid-template-columns: 1fr; }
-  .windows { grid-template-columns: 1fr; }
+  .painel { grid-template-columns: 1fr; gap: 20px; }
+  .windows, .duas, .baixar-grade { grid-template-columns: 1fr; }
+  .duas, .baixar-grade { gap: 36px; }
 }
-@media (max-width: 640px) {
+@media (max-width: 720px) {
   body { font-size: 16px; }
-  .menu { display: none; }
-  .funcoes, .passos, .seguro, .comparar { grid-template-columns: 1fr; }
-  .numero strong { font-size: 24px; }
-  .fixa .menu { display: none; }
-  .apoie { grid-template-columns: 1fr; }
-  .heroi h1 { font-size: 28px; }
-  h2 { font-size: 24px; }
-  .botao { width: 100%; justify-content: center; }
+  .topo .menu, .fixa .menu { display: none; }
+  .abrir-menu { display: block; }
+  .gaveta.aberta { display: flex; flex-direction: column; padding: 0 0 14px; }
+  .gaveta a { color: #fff; text-decoration: none; padding: 10px 2px; border-top: 1px solid rgba(255, 255, 255, .16); font-size: 16px; }
+  .faixa, .baixar { padding: 48px 0; }
+  .heroi h1 { font-size: 29px; }
+  h2 { font-size: 25px; }
+  .comparar, .passos, .numeros { grid-template-columns: 1fr; }
+  .numero strong { font-size: 25px; }
+  .abas { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 18px; padding: 2px 16px 6px; scrollbar-width: none; }
+  .abas::-webkit-scrollbar { display: none; }
+  .aba { flex: none; }
+  .botoes .botao { width: 100%; justify-content: center; }
+  .apoie { grid-template-columns: 1fr; padding: 22px; }
+  .arquivo { flex-direction: column; align-items: flex-start; }
 }
 </style>
 </head>
@@ -239,6 +301,14 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   <symbol id="baixa" viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="sim" viewBox="0 0 24 24"><path d="m5 12 5 5 9-10" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/></symbol>
   <symbol id="nao" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"/></symbol>
+  <symbol id="play" viewBox="0 0 24 24"><circle cx="12" cy="12" r="11" fill="#fff"/><path d="M10 8l6 4-6 4z" fill="#1f4570"/></symbol>
+  <symbol id="i-backup" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="6" rx="7" ry="3"/><path d="M5 6v6c0 1.7 3.1 3 7 3s7-1.3 7-3V6"/><path d="M5 12v6c0 1.7 3.1 3 7 3s7-1.3 7-3v-6"/></g></symbol>
+  <symbol id="i-restaurar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/><path d="M12 8v4l3 2"/></g></symbol>
+  <symbol id="i-migrar" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h13l-3-3"/><path d="M20 16H7l3 3"/></g></symbol>
+  <symbol id="i-numeracao" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16M4 15h16M10 3 8 21M16 3l-2 18"/></g></symbol>
+  <symbol id="i-historico" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></g></symbol>
+  <symbol id="i-automatico" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/></g></symbol>
+  <symbol id="i-tema" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></g></symbol>
 </svg>
 
 <div class="fixa" id="fixa" aria-hidden="true">
@@ -248,6 +318,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
       <a href="#funcoes" tabindex="-1">O que faz</a>
       <a href="#como-usar" tabindex="-1">Como usar</a>
       <a href="#perguntas" tabindex="-1">Perguntas</a>
+      <a href="#baixar" tabindex="-1">Requisitos</a>
     </nav>
     <a class="botao-peq" tabindex="-1" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest/download/PJeCalcBackup.exe"><svg aria-hidden="true"><use href="#baixa"/></svg>Baixar grátis</a>
   </div>
@@ -263,17 +334,30 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
         <a href="#perguntas">Perguntas</a>
         <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki">Guia completo</a>
       </nav>
+      <button class="abrir-menu" id="abrirMenu" type="button" aria-label="Abrir o menu" aria-expanded="false" aria-controls="gaveta">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
     </div>
+    <nav class="gaveta" id="gaveta">
+      <a href="#funcoes">O que faz</a>
+      <a href="#como-usar">Como usar</a>
+      <a href="#perguntas">Perguntas</a>
+      <a href="#baixar">Requisitos e arquivos</a>
+      <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki">Guia completo</a>
+    </nav>
     <div class="heroi">
       <div>
         <h1>Os cálculos do PJe-Calc guardados, em ordem e sem perder nenhum</h1>
         <p class="lead">Backup, restauração e migração dos cálculos do <b>PJe-Calc Cidadão</b> em todas as versões instaladas no computador. Com a numeração dos cálculos sempre em sequência.</p>
         <div class="botoes">
-          <a class="botao" id="baixar" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest/download/PJeCalcBackup.exe">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
+          <a class="botao" id="baixarTopo" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest/download/PJeCalcBackup.exe">
+            <svg aria-hidden="true"><use href="#baixa"/></svg>
             Baixar grátis
           </a>
-          <a class="botao-sec" href="#como-usar">Como usar →</a>
+          <button class="botao-sec" type="button" data-demo>
+            <svg aria-hidden="true"><use href="#play"/></svg>
+            Ver demonstração
+          </button>
         </div>
         <p class="detalhe" id="versao">Para Windows 10 e 11 · não precisa instalar</p>
         <div class="selos">
@@ -283,51 +367,32 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
           <span class="selo">Feito no Brasil<svg class="bandeira" aria-hidden="true"><use href="#br"/></svg></span>
         </div>
       </div>
-      <img class="foto" src="demonstracao.gif" alt="Demonstração do programa: backup, conferência, restauração, migração, histórico e numeração" width="799" height="677">
+      <button class="vitrine" type="button" data-demo aria-label="Ver a demonstração do programa">
+        <img src="tela-conferencia.png" alt="Backup concluído: 21 de 21 cálculos conferidos" width="1175" height="995">
+        <span class="play"><svg aria-hidden="true"><use href="#play"/></svg>Ver demonstração</span>
+      </button>
     </div>
   </div>
 </header>
 
 <main>
 
-<div class="largura">
-  <p class="oficial">O <b>PJe-Calc</b> é desenvolvido pelo <b>TRT da 8ª Região</b> e adotado pelo CSJT em toda a Justiça do Trabalho. Este é um <b>projeto independente e não oficial</b>: não tem vínculo com o TRT da 8ª Região, com o CSJT ou com a equipe do PJe-Calc. As fotos desta página usam dados fictícios.</p>
-  <div class="numeros">
-    <div class="numero"><strong>Todas</strong><span>as versões do PJe-Calc instaladas, num só backup</span></div>
-    <div class="numero"><strong>21 de 21</strong><span>cálculos conferidos, um por um, no fim de cada backup</span></div>
-    <div class="numero"><strong>9 segundos</strong><span>no backup rápido, contra 2 min 19 s num teste com 9 cálculos</span></div>
-    <div class="numero"><strong>Nenhum dado</strong><span>enviado para a internet: tudo roda no seu computador</span></div>
+<div class="faixa branca" style="padding:36px 0 40px">
+  <div class="largura">
+    <p class="oficial">O <b>PJe-Calc</b> é desenvolvido pelo <b>TRT da 8ª Região</b> e adotado pelo CSJT em toda a Justiça do Trabalho. Este é um <b>projeto independente e não oficial</b>: não tem vínculo com o TRT da 8ª Região, com o CSJT ou com a equipe do PJe-Calc. As fotos desta página usam dados fictícios.</p>
+    <div class="numeros">
+      <div class="numero"><strong>Todas</strong><span>as versões do PJe-Calc instaladas, num só backup</span></div>
+      <div class="numero"><strong>21 de 21</strong><span>cálculos conferidos, um por um, no fim de cada backup</span></div>
+      <div class="numero"><strong>9 segundos</strong><span>no backup rápido, contra 2 min 19 s num teste com 9 cálculos</span></div>
+      <div class="numero"><strong>Nenhum dado</strong><span>enviado para a internet: tudo roda no seu computador</span></div>
+    </div>
   </div>
 </div>
 
-<section>
+<section class="faixa">
   <div class="largura">
-    <h2>Por que existe</h2>
-    <p class="sub">O PJe-Calc guarda os cálculos dentro da pasta de cada versão, e não tem backup automático.</p>
-    <div class="problema">
-      <div class="cartao">
-        <div class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7h6l2 2h10v10H3z"/><path d="M12 13v4"/><path d="M12 11h.01"/></svg></div>
-        <h3>Versão nova, cálculos para trás</h3>
-        <p>Quando se instala uma versão nova do PJe-Calc em outra pasta, os cálculos antigos não vão junto.</p>
-      </div>
-      <div class="cartao">
-        <div class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
-        <h3>Horas exportando um por um</h3>
-        <p>A única saída era exportar e importar cálculo por cálculo pela tela. O programa faz isso sozinho e confere no final.</p>
-      </div>
-      <div class="cartao">
-        <div class="icone"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 9h16"/><path d="M4 15h16"/><path d="M10 3 8 21"/><path d="M16 3l-2 18"/></svg></div>
-        <h3>Numeração que pula</h3>
-        <p>Do cálculo 2 para o 33, de repente. O programa faz a numeração parar de pular e coloca os cálculos em sequência.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-<section>
-  <div class="largura">
-    <h2>Antes e depois</h2>
-    <p class="sub">O que muda na rotina de quem usa o PJe-Calc todos os dias.</p>
+    <h2>Por que usar</h2>
+    <p class="sub">O PJe-Calc guarda os cálculos dentro da pasta de cada versão e não tem backup automático. Quando se instala uma versão nova, os cálculos antigos não vão junto.</p>
     <div class="comparar">
       <div class="coluna sem">
         <h3>Sem o programa</h3>
@@ -353,48 +418,123 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   </div>
 </section>
 
-<section id="funcoes">
+<section class="faixa branca" id="funcoes">
   <div class="largura">
     <h2>O que ele faz</h2>
-    <p class="sub">Tudo em assistentes de poucas etapas, com um aviso antes de qualquer mudança. Clique numa foto para ampliar.</p>
-    <div class="funcoes">
-      <div class="funcao">
-        <img src="tela-backup.png" alt="Escolha dos cálculos do backup, agrupados por versão" width="1175" height="995" loading="lazy">
-        <div><h3>Backup de todas as versões</h3><p>Exporta cada cálculo em <code>.PJC</code> e copia o banco inteiro de cada versão do PJe-Calc instalada, sem precisar abrir o PJe-Calc para escolher.</p></div>
-      </div>
-      <div class="funcao">
-        <img src="tela-conferencia.png" alt="Conferência no final do backup: 21 de 21 conferidos" width="1175" height="995" loading="lazy">
-        <div><h3>Conferência no final</h3><p>Cada arquivo gerado é aberto e comparado com o banco: "21 de 21 conferidos". A cópia do banco também é aberta, para provar que está íntegra.</p></div>
-      </div>
-      <div class="funcao">
-        <img src="tela-restaurar.png" alt="Restauração com cálculos que parecem já existir desmarcados" width="1175" height="995" loading="lazy">
-        <div><h3>Restauração sem duplicar</h3><p>Traz de volta cálculos em qualquer versão e deixa desmarcados os que já existem. Ou volta o banco inteiro para o dia do backup.</p></div>
-      </div>
-      <div class="funcao">
-        <img src="tela-migrar.png" alt="Migração entre versões concluída" width="1175" height="995" loading="lazy">
-        <div><h3>Migração entre versões</h3><p>Leva os cálculos da versão antiga do PJe-Calc para a nova, sem mexer na origem e sem duplicar o que já foi levado.</p></div>
-      </div>
-      <div class="funcao">
-        <img src="tela-numeracao.png" alt="Aba Numeração com os cálculos em sequência" width="1175" height="995" loading="lazy">
-        <div><h3>Numeração em ordem</h3><p>Faz o PJe-Calc reservar um número por vez, para a numeração não pular, e coloca os cálculos em sequência (1, 2, 3…), com opção de desfazer.</p></div>
-      </div>
-      <div class="funcao">
-        <img src="tela-historico.png" alt="Busca de um cálculo dentro de todos os backups" width="1175" height="995" loading="lazy">
-        <div><h3>Histórico e busca</h3><p>Acha um cálculo dentro de todos os backups pelo nome da parte ou pelo processo, e restaura só ele.</p></div>
-      </div>
-      <div class="funcao">
-        <img src="tela-automatico.png" alt="Backup automático nos dias e horário escolhidos" width="1108" height="454" loading="lazy">
-        <div><h3>Backup automático</h3><p>Nos dias e no horário escolhidos, pelo Agendador do Windows. Se o computador estava desligado, roda quando ligar, e avisa se algo falhar.</p></div>
-      </div>
-      <div class="funcao">
-        <img src="tela-rapido.png" alt="Backup rápido: nada mudou, o PJe-Calc nem foi aberto" width="1175" height="995" loading="lazy">
-        <div><h3>Backup rápido</h3><p>Só os cálculos novos ou alterados são exportados. Se nada mudou, o backup termina em segundos, sem abrir o PJe-Calc.</p></div>
+    <p class="sub">Tudo em assistentes de poucas etapas, com um aviso antes de qualquer mudança. Escolha uma função:</p>
+
+    <div class="abas" role="tablist" aria-label="Funções do programa">
+      <button class="aba" role="tab" id="aba-backup" aria-controls="p-backup" aria-selected="true"><svg aria-hidden="true"><use href="#i-backup"/></svg>Backup</button>
+      <button class="aba" role="tab" id="aba-restaurar" aria-controls="p-restaurar" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-restaurar"/></svg>Restaurar</button>
+      <button class="aba" role="tab" id="aba-migrar" aria-controls="p-migrar" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-migrar"/></svg>Migrar</button>
+      <button class="aba" role="tab" id="aba-numeracao" aria-controls="p-numeracao" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-numeracao"/></svg>Numeração</button>
+      <button class="aba" role="tab" id="aba-historico" aria-controls="p-historico" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-historico"/></svg>Histórico e busca</button>
+      <button class="aba" role="tab" id="aba-automatico" aria-controls="p-automatico" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-automatico"/></svg>Automático</button>
+      <button class="aba" role="tab" id="aba-tema" aria-controls="p-tema" aria-selected="false" tabindex="-1"><svg aria-hidden="true"><use href="#i-tema"/></svg>Do seu jeito</button>
+    </div>
+
+    <div class="painel" role="tabpanel" id="p-backup" aria-labelledby="aba-backup">
+      <img src="tela-backup.png" alt="Escolha dos cálculos do backup, agrupados por versão" width="1175" height="995">
+      <div>
+        <h3>Backup de todas as versões</h3>
+        <p>Encontra sozinho as instalações do PJe-Calc, exporta cada cálculo em <code>.PJC</code> e copia o banco inteiro de cada versão.</p>
+        <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>A lista é lida direto do banco, sem abrir o PJe-Calc</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Conferência no final: "21 de 21 conferidos"</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Backup rápido: só o que é novo ou mudou é exportado</li>
+        </ul>
+        <a class="mais" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Fazer-backup">Passo a passo do backup →</a>
       </div>
     </div>
+
+    <div class="painel" role="tabpanel" id="p-restaurar" aria-labelledby="aba-restaurar" hidden>
+      <img src="tela-restaurar.png" alt="Restauração com cálculos que parecem já existir desmarcados" width="1175" height="995" loading="lazy">
+      <div>
+        <h3>Restauração sem duplicar</h3>
+        <p>Traz de volta cálculos <code>.PJC</code> em qualquer versão do PJe-Calc, ou volta o banco inteiro para o dia do backup.</p>
+        <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Os que parecem já existir vêm desmarcados</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Guarda antes uma cópia do banco atual</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Dá para desfazer pelo Histórico</li>
+        </ul>
+        <a class="mais" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Restaurar">Passo a passo da restauração →</a>
+      </div>
+    </div>
+
+    <div class="painel" role="tabpanel" id="p-migrar" aria-labelledby="aba-migrar" hidden>
+      <img src="tela-migrar.png" alt="Migração entre versões concluída" width="1175" height="995" loading="lazy">
+      <div>
+        <h3>Migração entre versões</h3>
+        <p>Instalou uma versão nova do PJe-Calc? Leve os cálculos da versão antiga para ela de uma vez.</p>
+        <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>A versão de origem não é alterada</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>O que já foi levado vem desmarcado</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Cópia do banco de destino antes de importar</li>
+        </ul>
+        <a class="mais" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Migrar-entre-versões">Passo a passo da migração →</a>
+      </div>
+    </div>
+
+    <div class="painel" role="tabpanel" id="p-numeracao" aria-labelledby="aba-numeracao" hidden>
+      <img src="tela-numeracao.png" alt="Aba Numeração com os cálculos em sequência" width="1175" height="995" loading="lazy">
+      <div>
+        <h3>Numeração em ordem</h3>
+        <p>A numeração do PJe-Calc pula porque o banco reserva 32 números de cada vez. O programa corrige isso e põe os cálculos em sequência.</p>
+        <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Reserva de 1 número por vez: a numeração não pula mais</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Números em sequência (1, 2, 3…) ou um por um</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Feito numa cópia conferida do banco, com opção de desfazer</li>
+        </ul>
+        <a class="mais" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Numeração-dos-cálculos">Passo a passo da numeração →</a>
+      </div>
+    </div>
+
+    <div class="painel" role="tabpanel" id="p-historico" aria-labelledby="aba-historico" hidden>
+      <img src="tela-historico.png" alt="Busca de um cálculo dentro de todos os backups" width="1175" height="995" loading="lazy">
+      <div>
+        <h3>Histórico e busca</h3>
+        <p>Todos os backups, restaurações, migrações e mudanças de numeração numa lista só.</p>
+        <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Acha um cálculo dentro de todos os backups pelo nome ou pelo processo</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Restaura só aquele cálculo com um clique</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Limpeza dos backups antigos, sempre pela Lixeira</li>
+        </ul>
+        <a class="mais" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Histórico-e-busca">Ver o Histórico →</a>
+      </div>
+    </div>
+
+    <div class="painel" role="tabpanel" id="p-automatico" aria-labelledby="aba-automatico" hidden>
+      <img src="tela-automatico.png" alt="Backup automático nos dias e horário escolhidos" width="1108" height="454" loading="lazy">
+      <div>
+        <h3>Backup automático</h3>
+        <p>Escolha os dias e o horário, e o backup roda sozinho pelo Agendador de Tarefas do Windows.</p>
+        <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Se o computador estava desligado na hora, roda quando ligar</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Avisa se um backup falhar ou deixar de rodar</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Funciona mesmo com o programa fechado</li>
+        </ul>
+        <a class="mais" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Backup-automático">Como ligar o backup automático →</a>
+      </div>
+    </div>
+
+    <div class="painel" role="tabpanel" id="p-tema" aria-labelledby="aba-tema" hidden>
+      <img src="tela-escuro.png" alt="Tema escuro com a paleta Esmeralda" width="1175" height="995" loading="lazy">
+      <div>
+        <h3>Do seu jeito</h3>
+        <p>Tema claro, escuro ou seguindo o Windows, e 33 paletas de cores.</p>
+        <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Sons e notificações do Windows, que dá para desligar</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Atalhos de teclado para tudo</li>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Planilha (Excel) com todos os cálculos de todas as versões</li>
+        </ul>
+        <a class="mais" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Configurações">Ver as configurações →</a>
+      </div>
+    </div>
+    <p class="dica">Clique numa foto para ampliar.</p>
   </div>
 </section>
 
-<section id="como-usar">
+<section class="faixa azul" id="como-usar">
   <div class="largura">
     <h2>Como usar</h2>
     <p class="sub">O primeiro backup leva poucos cliques: o programa já vem com tudo marcado.</p>
@@ -419,41 +559,33 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
       </div>
     </div>
 
-    <p style="margin-top:22px">O passo a passo de cada tela, com fotos, está no <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki"><b>guia completo</b></a>.</p>
+    <p style="margin:22px 0 0">O passo a passo de cada tela, com fotos, está no <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki"><b>guia completo</b></a>.</p>
   </div>
 </section>
 
-<section>
-  <div class="largura">
-    <h2>Seguro por padrão</h2>
-    <p class="sub">O programa foi feito para nunca deixar você sem os seus cálculos.</p>
-    <ul class="seguro">
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><div><b>Nunca encerra o PJe-Calc à força</b><span>Se ele estiver aberto, é fechado como no "Sair" do ícone perto do relógio e reaberto no final.</span></div></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><div><b>Dá para desfazer</b><span>Antes de restaurar, migrar ou mudar a numeração, guarda uma cópia do banco.</span></div></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><div><b>Nada é apagado sem perguntar</b><span>A limpeza de backups antigos mostra a lista antes e manda para a Lixeira.</span></div></li>
-      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 5 5 9-10"/></svg><div><b>Seus dados não saem do computador</b><span>A internet só é usada para ver se há versão nova, o que dá para desligar.</span></div></li>
-    </ul>
-  </div>
-</section>
-
-<section id="cmd">
-  <div class="largura cmd">
+<section class="faixa branca">
+  <div class="largura duas">
     <div>
-      <h2>Também no CMD</h2>
-      <p class="sub" style="margin-bottom:0">O programa traz junto uma versão para o terminal, com as mesmas funções em menus simples. Para quem prefere o teclado ou quer automatizar.</p>
-      <ul>
-        <li>backup, restauração, migração e correção da numeração;</li>
-        <li>arrastar arquivos <code>.PJC</code> sobre o <code>backup-calculos.bat</code> para restaurar;</li>
-        <li>modo automático para scripts e agendamentos.</li>
+      <h2>Seguro por padrão</h2>
+      <p class="sub" style="margin-bottom:14px">Feito para nunca deixar você sem os seus cálculos.</p>
+      <ul class="seguro">
+        <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Nunca encerra o PJe-Calc à força</b><span>Se ele estiver aberto, é fechado como no "Sair" do ícone perto do relógio e reaberto no final.</span></div></li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Dá para desfazer</b><span>Antes de restaurar, migrar ou mudar a numeração, guarda uma cópia do banco.</span></div></li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Nada é apagado sem perguntar</b><span>A limpeza de backups antigos mostra a lista antes e manda para a Lixeira.</span></div></li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Seus dados não saem do computador</b><span>A internet só é usada para ver se há versão nova, o que dá para desligar.</span></div></li>
       </ul>
-      <pre><code>PJeCalcBackup-Console.exe --backup --rapido</code></pre>
-      <p style="font-size:15px;margin:12px 0 0"><a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Versão-para-o-CMD">Ver os menus e todos os parâmetros</a></p>
     </div>
-    <img src="cmd-backup.png" alt="Backup rápido pela versão para o CMD" width="1059" height="690" loading="lazy">
+    <div class="cmd" id="cmd">
+      <h2>Também no CMD</h2>
+      <p>O programa traz junto uma versão para o terminal, com as mesmas funções em menus simples e um modo automático para scripts.</p>
+      <pre><code>PJeCalcBackup-Console.exe --backup --rapido</code></pre>
+      <img src="cmd-backup.png" alt="Backup rápido pela versão para o CMD" width="1059" height="690" loading="lazy">
+      <p style="font-size:15px;margin-top:12px"><a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Versão-para-o-CMD">Ver os menus e todos os parâmetros →</a></p>
+    </div>
   </div>
 </section>
 
-<section id="perguntas" class="faq">
+<section class="faixa faq" id="perguntas">
   <div class="largura">
     <h2>Perguntas frequentes</h2>
     <p class="sub">As mais comuns. Todas as outras estão nas <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Perguntas-frequentes">perguntas frequentes do guia</a>.</p>
@@ -463,7 +595,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
     </details>
     <details>
       <summary>Em quais versões do PJe-Calc funciona?</summary>
-      <p>No PJe-Calc Cidadão para Windows. Foi testado nas versões 2.14.0 e 2.16.0, e encontra sozinho todas as versões instaladas no computador. Precisa do Windows 10 ou 11 e do Microsoft Edge ou do Google Chrome, que são usados de forma invisível para exportar os cálculos.</p>
+      <p>No PJe-Calc Cidadão para Windows. Foi testado nas versões 2.14.0 e 2.16.0, e encontra sozinho todas as versões instaladas no computador.</p>
     </details>
     <details>
       <summary>Preciso fechar o PJe-Calc antes do backup?</summary>
@@ -492,9 +624,9 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   </div>
 </section>
 
-<section id="apoie">
+<section class="faixa branca" id="apoie" style="padding-top:48px;padding-bottom:48px">
   <div class="largura">
-    <div class="cartao apoie">
+    <div class="apoie">
       <div>
         <h2>Apoie o projeto</h2>
         <p class="sub" style="margin-bottom:10px">O PJe-Calc Backup é gratuito. Se ele economizou o seu tempo, você pode apoiar com um PIX de qualquer valor, ou indicar o programa a colegas que usam o PJe-Calc.</p>
@@ -505,15 +637,41 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   </div>
 </section>
 
-<div class="largura final">
-  <h2>Pronto para o primeiro backup?</h2>
-  <p class="sub" style="margin:0 auto 22px">Leva poucos minutos e os seus cálculos ficam guardados.</p>
-  <a class="botao" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest/download/PJeCalcBackup.exe">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 4v11"/><path d="m7 11 5 5 5-5"/><path d="M5 20h14"/></svg>
-    Baixar grátis
-  </a>
-  <p style="font-size:14px;color:var(--suave);margin-top:14px">Outros arquivos (versão para o CMD, códigos SHA-256) na <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest">página da versão</a>.</p>
-</div>
+<section class="baixar" id="baixar">
+  <div class="largura baixar-grade">
+    <div>
+      <h2>Pronto para o primeiro backup?</h2>
+      <p class="sub" style="margin-bottom:22px">Leva poucos minutos e os seus cálculos ficam guardados.</p>
+      <a class="botao" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest/download/PJeCalcBackup.exe">
+        <svg aria-hidden="true"><use href="#baixa"/></svg>
+        Baixar grátis
+      </a>
+      <ul class="requisitos">
+        <li><svg aria-hidden="true"><use href="#sim"/></svg>Windows 10 ou 11 (usa o .NET Framework 4.8, que já vem no Windows)</li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg>Microsoft Edge ou Google Chrome, usados de forma invisível para exportar os cálculos</li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg>PJe-Calc Cidadão para Windows, aberto ao menos uma vez</li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg>Não pede senha de administrador</li>
+      </ul>
+    </div>
+    <div>
+      <div class="arquivos">
+        <div class="arquivo principal">
+          <div><b>PJeCalcBackup.exe</b><span>O programa com janela. Já traz a versão para o CMD. É o recomendado.</span></div>
+          <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest/download/PJeCalcBackup.exe">Baixar</a>
+        </div>
+        <div class="arquivo">
+          <div><b id="nomeZip">PJeCalcBackup-vX.Y.Z.zip</b><span>Os arquivos separados: o programa, a versão para o CMD e o <code style="background:rgba(255,255,255,.12);color:#fff">backup-calculos.bat</code>.</span></div>
+          <a id="linkZip" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest">Baixar</a>
+        </div>
+        <div class="arquivo">
+          <div><b>SHA256.txt</b><span>Os códigos para conferir que o arquivo baixado é o publicado.</span></div>
+          <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/releases/latest/download/SHA256.txt">Baixar</a>
+        </div>
+      </div>
+      <p style="font-size:14px;color:#c5d7ea;margin:12px 0 0">Notas de cada versão no <a style="color:#fff" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Histórico-de-versões">histórico de versões</a>.</p>
+    </div>
+  </div>
+</section>
 
 </main>
 
@@ -528,31 +686,98 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   </div>
 </footer>
 
-<div class="zoom" id="zoom" role="dialog" aria-label="Foto ampliada"><img alt=""></div>
+<div class="zoom" id="zoom" role="dialog" aria-modal="true" aria-label="Imagem ampliada">
+  <button class="fechar" type="button" aria-label="Fechar">×</button>
+  <img alt="">
+</div>
 
 <script>
-// versão e tamanho do arquivo mais recente (se a consulta falhar, o texto padrão fica)
+// versão, tamanho e nome do .zip da versão mais recente (se a consulta falhar, o texto padrão fica)
 fetch("https://api.github.com/repos/lfeliipeadv-stack/pjecalc-backup/releases/latest")
   .then(function (r) { return r.ok ? r.json() : null; })
   .then(function (v) {
     if (!v || !v.tag_name) return;
-    var exe = (v.assets || []).filter(function (a) { return a.name === "PJeCalcBackup.exe"; })[0];
+    var assets = v.assets || [];
+    var exe = assets.filter(function (a) { return a.name === "PJeCalcBackup.exe"; })[0];
+    var zip = assets.filter(function (a) { return /\.zip$/i.test(a.name); })[0];
     var texto = "Versão " + v.tag_name.replace(/^v/, "");
     if (exe) texto += " · " + (exe.size / 1048576).toFixed(1).replace(".", ",") + " MB";
     document.getElementById("versao").textContent = texto + " · Windows 10 e 11 · não precisa instalar";
+    if (zip) {
+      document.getElementById("nomeZip").textContent = zip.name;
+      document.getElementById("linkZip").href = zip.browser_download_url;
+    }
   })
   .catch(function () {});
 
+// menu do celular
+var abrirMenu = document.getElementById("abrirMenu"), gaveta = document.getElementById("gaveta");
+abrirMenu.addEventListener("click", function () {
+  var aberta = gaveta.classList.toggle("aberta");
+  abrirMenu.setAttribute("aria-expanded", aberta ? "true" : "false");
+});
+gaveta.querySelectorAll("a").forEach(function (a) {
+  a.addEventListener("click", function () { gaveta.classList.remove("aberta"); abrirMenu.setAttribute("aria-expanded", "false"); });
+});
+
 // barra fixa com o botão de baixar, depois que o topo sai da tela
-var fixa = document.getElementById("fixa"), principal = document.getElementById("baixar");
+var fixa = document.getElementById("fixa");
 if ("IntersectionObserver" in window) {
   new IntersectionObserver(function (e) {
     var mostrar = !e[0].isIntersecting && e[0].boundingClientRect.top < 0;
     fixa.classList.toggle("visivel", mostrar);
     fixa.setAttribute("aria-hidden", mostrar ? "false" : "true");
     fixa.querySelectorAll("a").forEach(function (a) { a.tabIndex = mostrar ? 0 : -1; });
-  }).observe(principal);
+  }).observe(document.getElementById("baixarTopo"));
 }
+
+// abas das funções
+var abas = Array.prototype.slice.call(document.querySelectorAll(".aba"));
+function escolher(aba, foco) {
+  abas.forEach(function (a) {
+    var sel = a === aba;
+    a.setAttribute("aria-selected", sel ? "true" : "false");
+    a.tabIndex = sel ? 0 : -1;
+    document.getElementById(a.getAttribute("aria-controls")).hidden = !sel;
+  });
+  if (foco) aba.focus();
+  aba.scrollIntoView({ block: "nearest", inline: "nearest" });
+}
+abas.forEach(function (aba, i) {
+  aba.addEventListener("click", function () { escolher(aba); });
+  aba.addEventListener("keydown", function (e) {
+    var n = null;
+    if (e.key === "ArrowRight") n = abas[(i + 1) % abas.length];
+    if (e.key === "ArrowLeft") n = abas[(i - 1 + abas.length) % abas.length];
+    if (e.key === "Home") n = abas[0];
+    if (e.key === "End") n = abas[abas.length - 1];
+    if (n) { e.preventDefault(); escolher(n, true); }
+  });
+});
+
+// imagem ampliada: fotos das funções, do CMD e a demonstração
+var zoom = document.getElementById("zoom"), zoomImg = zoom.querySelector("img"), antes = null;
+function ampliar(src, alt) {
+  antes = document.activeElement;
+  zoomImg.src = src; zoomImg.alt = alt;
+  zoom.classList.add("aberto");
+  zoom.querySelector(".fechar").focus();
+}
+function fechar() {
+  zoom.classList.remove("aberto");
+  zoomImg.removeAttribute("src");
+  if (antes) antes.focus();
+}
+document.querySelectorAll(".painel img, .cmd img").forEach(function (img) {
+  img.addEventListener("click", function () { ampliar(img.src, img.alt); });
+});
+document.querySelectorAll("[data-demo]").forEach(function (b) {
+  b.addEventListener("click", function () {
+    ampliar("demonstracao.gif", "Demonstração do programa: backup, conferência, restauração, migração, histórico e numeração");
+  });
+});
+zoom.addEventListener("click", fechar);
+document.addEventListener("keydown", function (e) { if (e.key === "Escape" && zoom.classList.contains("aberto")) fechar(); });
 
 // copiar a chave PIX
 document.getElementById("copiar").addEventListener("click", function () {
@@ -564,18 +789,6 @@ document.getElementById("copiar").addEventListener("click", function () {
     });
   } catch (e) {}
 });
-
-// ampliar as fotos
-var zoom = document.getElementById("zoom");
-document.querySelectorAll(".funcao img, .cmd img").forEach(function (img) {
-  img.addEventListener("click", function () {
-    zoom.querySelector("img").src = img.src;
-    zoom.querySelector("img").alt = img.alt;
-    zoom.classList.add("aberto");
-  });
-});
-zoom.addEventListener("click", function () { zoom.classList.remove("aberto"); });
-document.addEventListener("keydown", function (e) { if (e.key === "Escape") zoom.classList.remove("aberto"); });
 </script>
 </body>
 </html>
