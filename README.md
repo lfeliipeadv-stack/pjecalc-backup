@@ -15,6 +15,8 @@ Gratuito, de código aberto e feito no Brasil 🇧🇷
 <p align="center">
 <a href="../../releases/latest"><b>⬇ Baixar</b></a>
 &nbsp;&nbsp;·&nbsp;&nbsp;
+<a href="https://lfeliipeadv-stack.github.io/pjecalc-backup/"><b>🌐 Site</b></a>
+&nbsp;&nbsp;·&nbsp;&nbsp;
 <a href="../../wiki"><b>📖 Guia passo a passo (Wiki)</b></a>
 &nbsp;&nbsp;·&nbsp;&nbsp;
 <a href="#️-apoie-este-projeto"><b>❤️ Apoiar</b></a>
@@ -23,7 +25,7 @@ Gratuito, de código aberto e feito no Brasil 🇧🇷
 <p align="center"><img src="docs/demonstracao.gif" alt="Demonstração: backup, conferência, backup rápido, restauração, migração, histórico e numeração dos cálculos" width="760"></p>
 
 > [!IMPORTANT]
-> Projeto **independente e não oficial**. Não tem vínculo com nenhum TRT, com o CSJT ou com a equipe do PJe-Calc. Tudo roda só no seu computador.
+> O **PJe-Calc** é desenvolvido pelo **TRT da 8ª Região** e adotado pelo CSJT em toda a Justiça do Trabalho. Este é um projeto **independente e não oficial**: não tem vínculo com o TRT da 8ª Região, com o CSJT ou com a equipe do PJe-Calc. Tudo roda só no seu computador.
 
 ## Por que existe
 
