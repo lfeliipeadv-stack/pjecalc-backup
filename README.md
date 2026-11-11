@@ -33,6 +33,9 @@ Gratuito, de código aberto e feito no Brasil 🇧🇷
 > [!IMPORTANT]
 > O **PJe-Calc** é desenvolvido pelo **TRT da 8ª Região** e adotado pelo CSJT em toda a Justiça do Trabalho. Este é um projeto **independente e não oficial**: não tem vínculo com o TRT da 8ª Região, com o CSJT ou com a equipe do PJe-Calc. Tudo roda só no seu computador.
 
+> [!TIP]
+> **Novidades da 1.5:** aviso quando o TRT da 8ª Região publica uma versão nova do PJe-Calc, com download do instalador oficial conferido; migração para a versão nova **sem precisar abri-la antes**; conferência de espaço em disco antes do backup; **Relatar um problema** no rodapé, sem dados das partes; e o logo novo, o cofre. [Ver tudo o que mudou](../../wiki/Histórico-de-versões).
+
 ## Por que existe
 
 O PJe-Calc guarda os cálculos num banco de dados **dentro da pasta de cada versão**. Quando se instala uma versão nova em outra pasta, os cálculos antigos **não vão junto**, e o PJe-Calc não tem backup automático. A única saída era exportar e importar cálculo por cálculo pela tela, o que levava horas.
@@ -63,7 +66,7 @@ Restaura cálculos <code>.PJC</code> em qualquer versão e deixa desmarcados os 
 <td valign="top">
 <img src="docs/tela-migrar.png" alt="Migração entre versões concluída"><br>
 <b>Migração entre versões</b><br>
-Leva os cálculos de uma versão do PJe-Calc para outra sem mexer na origem e sem duplicar o que já foi levado.
+Leva os cálculos de uma versão do PJe-Calc para outra sem mexer na origem e sem duplicar o que já foi levado. Quando a versão nova ainda está vazia, uma faixa oferece levar os cálculos com um clique, sem precisar abri-la antes.
 </td>
 </tr>
 <tr>
@@ -102,6 +105,18 @@ Tema claro, escuro ou seguindo o Windows, 33 paletas de cores, sons e notificaç
 As mesmas funções em menus no terminal, e um modo automático para scripts. <a href="#versão-para-o-cmd">Saiba mais</a>.
 </td>
 </tr>
+<tr>
+<td valign="top">
+<img src="docs/tela-aviso-trt8.png" alt="Faixa avisando que saiu uma versão nova do PJe-Calc no site do TRT da 8ª Região"><br>
+<b>Aviso de versão nova do PJe-Calc</b><br>
+Ao abrir, o programa consulta a página de instalação do site do TRT da 8ª Região. Se saiu uma versão mais nova que as instaladas, <b>Baixar e instalar</b> traz o instalador oficial de lá, conferido pelo código MD5 publicado na página.
+</td>
+<td valign="top">
+<img src="docs/tela-relato.png" alt="Tela Relatar um problema"><br>
+<b>Relatar um problema</b><br>
+No rodapé: o programa monta as informações técnicas <b>sem os nomes das partes, os processos e os CPFs</b>, e abre o e-mail ou o GitHub com a mensagem pronta. Nada é enviado sem você conferir.
+</td>
+</tr>
 </table>
 
 ## Como usar
@@ -130,7 +145,8 @@ O passo a passo completo, com uma foto de cada tela, está no **[Wiki](../../wik
 - **O banco original não é alterado no backup.** A lista de cálculos é lida de uma cópia temporária.
 - **Antes de restaurar, migrar ou mudar a numeração**, guarda uma cópia do banco. Dá para desfazer pelo Histórico.
 - **Nada é apagado sem perguntar.** A limpeza de backups antigos mostra a lista antes e manda para a Lixeira. O backup mais recente sem falhas nunca sai.
-- **Tudo roda no seu computador.** A internet só é usada para ver se há versão nova no GitHub (dá para desligar) e para baixá-la quando você pede. A atualização confere o SHA-256 de cada arquivo.
+- **Confere o espaço antes.** Se a pasta de backups (inclusive pendrive ou rede) não tiver espaço, o programa avisa antes de começar.
+- **Tudo roda no seu computador.** A internet só é usada para ver se há versão nova do programa no GitHub e do PJe-Calc no site do TRT8 (as duas consultas podem ser desligadas), e para baixar quando você pede. A atualização do programa confere o SHA-256 de cada arquivo; o instalador do PJe-Calc é conferido pelo MD5 publicado pelo TRT8.
 
 ## Numeração dos cálculos
 
@@ -174,13 +190,13 @@ Menus, arrastar e soltar e todos os parâmetros: **[Versão para o CMD](../../wi
 | `PJeCalcBackup-vX.Y.Z.zip` | Os arquivos separados: o programa, a versão para o CMD (`PJeCalcBackup-Console.exe`) e o `backup-calculos.bat`. |
 | `SHA256.txt` | Os códigos para conferir que o arquivo baixado é o publicado. |
 
-**Requisitos:** Windows 10 ou 11 (usa o .NET Framework 4.8, que já vem no Windows) e Microsoft Edge ou Google Chrome, usados de forma invisível para exportar e importar os `.PJC`. Testado no PJe-Calc Cidadão **2.14.0** e **2.16.0**.
+**Requisitos:** Windows 10 ou 11 (usa o .NET Framework 4.8, que já vem no Windows) e Microsoft Edge ou Google Chrome, usados de forma invisível para exportar e importar os `.PJC`. Testado no PJe-Calc Cidadão **2.13.0**, **2.14.0** e **2.16.0**.
 
 ## Sobre
 
 Este programa nasceu de uma dificuldade real no dia a dia da advocacia: ao instalar uma versão nova do PJe-Calc, os cálculos não vão junto, e a única saída era exportar e importar um por um. O PJe-Calc Backup faz isso de forma automática e segura, com conferência no final.
 
-As fotos desta página e do Wiki foram feitas com **dados fictícios**: nomes, empresas e processos inventados, em duas instalações de teste do PJe-Calc.
+As fotos desta página e do Wiki foram feitas na versão 1.5.1 com **dados fictícios**: nomes, empresas e processos inventados, em duas instalações de teste do PJe-Calc.
 
 ## Limitações conhecidas
 
@@ -188,7 +204,10 @@ As fotos desta página e do Wiki foram feitas com **dados fictícios**: nomes, e
 - Cada `.PJC` importado vira um cálculo novo, com número novo. É assim que o PJe-Calc funciona; a aba Numeração pode pôr os números em ordem depois.
 - A detecção de duplicados compara reclamante, reclamado, processo e as datas do contrato e do cálculo. Dois cálculos iguais nesses dados são tratados como o mesmo.
 - Mudar o número dos cálculos só é liberado nas versões do PJe-Calc já conferidas. Numa versão nova, essa parte fica bloqueada até uma atualização do programa; a reserva de 1 número continua disponível.
-- Uma versão do PJe-Calc que nunca foi aberta precisa ser aberta uma vez pelo atalho oficial antes do primeiro uso.
+- O passo automático da primeira abertura de uma versão recém-instalada foi conferido só no PJe-Calc **2.16.0**. Se uma versão futura vier diferente, o programa não mexe nela e pede para abri-la uma vez pelo atalho oficial.
+- O aviso de versão nova do PJe-Calc depende do formato da página de instalação no site do TRT8. Se a página mudar, o aviso deixa de aparecer até o programa ser atualizado. O download é conferido pelo código MD5 que o próprio TRT8 publica.
+- A conferência de espaço em disco é uma estimativa com folga; o backup costuma ocupar menos.
+- Os backups ainda não têm senha. Guarde-os num lugar seguro.
 
 ## Privacidade
 
@@ -212,7 +231,7 @@ Os executáveis ficam em `app\saida`. Detalhes técnicos em **[Como funciona](..
 
 ## Contribuindo
 
-Encontrou um problema ou testou em outra versão do PJe-Calc? Abra uma [*issue*](../../issues) dizendo a versão do PJe-Calc, a do PJe-Calc Backup (aparece no rodapé do programa) e a do Windows. Se colar o `relatorio.txt`, **apague os nomes das partes antes**.
+Encontrou um problema ou testou em outra versão do PJe-Calc? O jeito mais fácil é o link **Relatar um problema**, no rodapé do programa: ele já junta as versões e as últimas operações, **sem os nomes das partes**, e abre o e-mail (**pjecalcbkp@gmail.com**) ou uma [*issue*](../../issues) com a mensagem pronta. Se for colar um `relatorio.txt` à mão, **apague os nomes das partes antes**.
 
 ## ❤️ Apoie este projeto
 
@@ -222,7 +241,7 @@ O PJe-Calc Backup é gratuito e continuará sendo. Se ele economizou o seu tempo
 
 <img src="docs/apoie-pix.png" alt="QR Code PIX para apoiar o projeto" width="220">
 
-No app do banco: **Pix → Pagar com chave** (cole a chave) ou leia o QR Code. O nome do recebedor aparece antes de você confirmar. A chave e o QR Code também ficam no programa, em **⚙ → Apoie este projeto**.
+No app do banco: **Pix → Pagar com chave** (cole a chave) ou leia o QR Code. O nome do recebedor aparece antes de você confirmar. A chave e o QR Code também ficam no programa: clique em **❤ Apoiar**, no rodapé.
 
 Também ajuda dar uma ⭐ no repositório e indicar o programa a colegas que usam o PJe-Calc.
 

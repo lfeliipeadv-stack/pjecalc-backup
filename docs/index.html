@@ -20,9 +20,11 @@
 <link rel="icon" type="image/png" href="icone.png">
 <style>
 :root {
-  --azul: #2c5d8f;
-  --azul-escuro: #1f4570;
+  --azul: #1f4f80;
+  --azul-escuro: #12355b;
   --azul-claro: #e8eff7;
+  --ambar: #f2a900;
+  --ambar-claro: #fff4d6;
   --fundo: #f4f6f9;
   --faixa: #ffffff;
   --faixa-azul: #eaf1f8;
@@ -41,6 +43,8 @@
     --azul: #6aa3dc;
     --azul-escuro: #8ab8e6;
     --azul-claro: #1c2a3a;
+    --ambar: #f2b724;
+    --ambar-claro: #2d2611;
     --fundo: #10161d;
     --faixa: #151d26;
     --faixa-azul: #142233;
@@ -81,7 +85,7 @@ h2 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -.4px; 
 .centro .sub { margin-left: auto; margin-right: auto; }
 
 /* topo */
-.topo { background: linear-gradient(160deg, #224c77, #2c5d8f 55%, #3a6fa3); color: #fff; position: relative; }
+.topo { background: linear-gradient(160deg, #0f2c4c, #12355b 50%, #1f4f80); color: #fff; position: relative; }
 .barra { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 0; }
 .marca { display: flex; align-items: center; gap: 10px; color: #fff; text-decoration: none; font-weight: 600; font-size: 18px; }
 .marca img { width: 32px; height: 32px; border-radius: 8px; }
@@ -125,7 +129,7 @@ h2 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -.4px; 
 /* barra fixa */
 .fixa {
   position: fixed; top: 0; left: 0; right: 0; z-index: 9;
-  background: rgba(31, 69, 112, .96); backdrop-filter: blur(6px);
+  background: rgba(18, 53, 91, .96); backdrop-filter: blur(6px);
   box-shadow: 0 2px 12px rgba(0, 0, 0, .2);
   transform: translateY(-100%); transition: transform .2s ease;
 }
@@ -141,9 +145,24 @@ h2 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -.4px; 
 .oficial { margin: 0 0 22px; padding: 14px 18px; border-radius: 10px; background: var(--fundo); border: 1px solid var(--borda); color: var(--suave); font-size: 15px; }
 .oficial b { color: var(--texto); }
 .numeros { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
-.numero { padding: 4px 0 4px 18px; border-left: 3px solid var(--azul); }
+.numero { padding: 4px 0 4px 18px; border-left: 3px solid var(--ambar); }
 .numero strong { display: block; font-size: 30px; line-height: 1.15; color: var(--azul); letter-spacing: -.5px; }
 .numero span { color: var(--suave); font-size: 15px; }
+
+/* selo "novo" no topo e novidades */
+.novo { display: inline-flex; align-items: center; gap: 8px; margin: 0 0 16px; padding: 4px 12px 4px 4px; border-radius: 99px; background: rgba(255, 255, 255, .1); border: 1px solid rgba(255, 255, 255, .22); color: #eaf2fa; font-size: 14px; text-decoration: none; }
+.novo b { background: var(--ambar); color: #12355b; font-size: 12px; letter-spacing: .3px; padding: 2px 9px; border-radius: 99px; }
+.novo:hover { background: rgba(255, 255, 255, .16); }
+.novidades { display: grid; grid-template-columns: repeat(4, 1fr); gap: 18px; }
+.novidade { background: var(--cartao); border: 1px solid var(--borda); border-top: 3px solid var(--ambar); border-radius: 12px; padding: 20px; box-shadow: var(--sombra); }
+.novidade svg { width: 26px; height: 26px; color: var(--azul); }
+.novidade h3 { margin: 8px 0 6px; font-size: 17px; }
+.novidade p { margin: 0; color: var(--suave); font-size: 15px; }
+.faixa-trt8 { margin: 0 0 22px; border-radius: 10px; border: 1px solid var(--borda); box-shadow: var(--sombra); cursor: zoom-in; }
+.relato { display: grid; grid-template-columns: 1.2fr 1fr; gap: 32px; align-items: center; margin-top: 28px; }
+.relato img { border-radius: 10px; border: 1px solid var(--borda); box-shadow: var(--sombra); cursor: zoom-in; }
+.relato h3 { font-size: 22px; margin: 0 0 8px; }
+.relato p { margin: 0 0 12px; color: var(--suave); }
 
 /* antes e depois */
 .comparar { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
@@ -230,7 +249,7 @@ h2 { font-size: 30px; line-height: 1.2; margin: 0 0 8px; letter-spacing: -.4px; 
 .copiar { font-size: 14px; font-weight: 600; cursor: pointer; border: 1px solid var(--borda); background: var(--cartao); color: var(--azul); border-radius: 8px; padding: 6px 12px; }
 
 /* baixar */
-.baixar { background: linear-gradient(160deg, #224c77, #2c5d8f 55%, #3a6fa3); color: #fff; padding: 64px 0; scroll-margin-top: 40px; }
+.baixar { background: linear-gradient(160deg, #0f2c4c, #12355b 50%, #1f4f80); color: #fff; padding: 64px 0; scroll-margin-top: 40px; }
 .baixar h2 { color: #fff; }
 .baixar .sub { color: #dbe8f5; }
 .baixar-grade { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; align-items: start; }
@@ -266,6 +285,8 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   .numeros { grid-template-columns: repeat(2, 1fr); }
   .passos { grid-template-columns: repeat(2, 1fr); }
   .painel { grid-template-columns: 1fr; gap: 20px; }
+  .novidades { grid-template-columns: repeat(2, 1fr); }
+  .relato { grid-template-columns: 1fr; gap: 20px; }
   .windows, .duas, .baixar-grade { grid-template-columns: 1fr; }
   .duas, .baixar-grade { gap: 36px; }
 }
@@ -278,7 +299,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   .faixa, .baixar { padding: 48px 0; }
   .heroi h1 { font-size: 29px; }
   h2 { font-size: 25px; }
-  .comparar, .passos, .numeros { grid-template-columns: 1fr; }
+  .comparar, .passos, .numeros, .novidades { grid-template-columns: 1fr; }
   .numero strong { font-size: 25px; }
   .abas { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 18px; padding: 2px 16px 6px; scrollbar-width: none; }
   .abas::-webkit-scrollbar { display: none; }
@@ -286,6 +307,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   .botoes .botao { width: 100%; justify-content: center; }
   .apoie { grid-template-columns: 1fr; padding: 22px; }
   .arquivo { flex-direction: column; align-items: flex-start; }
+  .faixa-trt8 { display: none; }
 }
 </style>
 </head>
@@ -309,6 +331,10 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   <symbol id="i-historico" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></g></symbol>
   <symbol id="i-automatico" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="m9 15 2 2 4-4"/></g></symbol>
   <symbol id="i-tema" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></g></symbol>
+  <symbol id="i-sino" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 16V11a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 20a2 2 0 0 0 4 0"/></g></symbol>
+  <symbol id="i-disco" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 14h6"/><circle cx="17" cy="14" r="1"/></g></symbol>
+  <symbol id="i-relato" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h16v11H9l-5 4z"/><path d="M12 8v3M12 13.5v.01"/></g></symbol>
+  <symbol id="i-cofre" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="16" rx="2"/><circle cx="13" cy="11" r="4.5"/><path d="M11 10h4M11 12h4M6 8v1M6 13v1M7 19v2M17 19v2"/></g></symbol>
 </svg>
 
 <div class="fixa" id="fixa" aria-hidden="true">
@@ -316,6 +342,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
     <a class="marca" href="#" tabindex="-1"><img src="logo-branco.png" alt="" width="28" height="28">PJe-Calc Backup</a>
     <nav class="menu">
       <a href="#funcoes" tabindex="-1">O que faz</a>
+      <a href="#novidades" tabindex="-1">Novidades</a>
       <a href="#como-usar" tabindex="-1">Como usar</a>
       <a href="#perguntas" tabindex="-1">Perguntas</a>
       <a href="#baixar" tabindex="-1">Requisitos</a>
@@ -330,6 +357,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
       <a class="marca" href="#"><img src="logo-branco.png" alt="" width="32" height="32">PJe-Calc Backup</a>
       <nav class="menu">
         <a href="#funcoes">O que faz</a>
+        <a href="#novidades">Novidades</a>
         <a href="#como-usar">Como usar</a>
         <a href="#perguntas">Perguntas</a>
         <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki">Guia completo</a>
@@ -340,6 +368,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
     </div>
     <nav class="gaveta" id="gaveta">
       <a href="#funcoes">O que faz</a>
+      <a href="#novidades">Novidades</a>
       <a href="#como-usar">Como usar</a>
       <a href="#perguntas">Perguntas</a>
       <a href="#baixar">Requisitos e arquivos</a>
@@ -347,6 +376,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
     </nav>
     <div class="heroi">
       <div>
+        <a class="novo" href="#novidades"><b>NOVO</b>Novidades da versão 1.5 →</a>
         <h1>Os cálculos do PJe-Calc guardados, em ordem e sem perder nenhum</h1>
         <p class="lead">Backup, restauração e migração dos cálculos do <b>PJe-Calc Cidadão</b> em todas as versões instaladas no computador. Com a numeração dos cálculos sempre em sequência.</p>
         <div class="botoes">
@@ -465,8 +495,9 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
       <img src="tela-migrar.png" alt="Migração entre versões concluída" width="1175" height="995" loading="lazy">
       <div>
         <h3>Migração entre versões</h3>
-        <p>Instalou uma versão nova do PJe-Calc? Leve os cálculos da versão antiga para ela de uma vez.</p>
+        <p>Instalou uma versão nova do PJe-Calc? Leve os cálculos da versão antiga para ela de uma vez, sem precisar abri-la antes.</p>
         <ul>
+          <li><svg aria-hidden="true"><use href="#sim"/></svg>Com a versão nova vazia, uma faixa oferece levar os cálculos</li>
           <li><svg aria-hidden="true"><use href="#sim"/></svg>A versão de origem não é alterada</li>
           <li><svg aria-hidden="true"><use href="#sim"/></svg>O que já foi levado vem desmarcado</li>
           <li><svg aria-hidden="true"><use href="#sim"/></svg>Cópia do banco de destino antes de importar</li>
@@ -534,6 +565,45 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
   </div>
 </section>
 
+<section class="faixa" id="novidades">
+  <div class="largura">
+    <h2>Novidades da versão 1.5</h2>
+    <p class="sub">Menos passos para trocar de versão do PJe-Calc, e mais avisos antes que algo dê errado.</p>
+    <img class="faixa-trt8" src="tela-aviso-trt8.png" alt="Faixa no programa: saiu o PJe-Calc 2.16.0 no site do TRT da 8ª Região, com os botões Ver no site do TRT8 e Baixar e instalar" width="1120" height="72" loading="lazy">
+    <div class="novidades">
+      <div class="novidade">
+        <svg aria-hidden="true"><use href="#i-sino"/></svg>
+        <h3>Aviso de PJe-Calc novo</h3>
+        <p>Quando o TRT da 8ª Região publica uma versão nova, uma faixa avisa. <b>Baixar e instalar</b> traz o instalador oficial de lá, conferido pelo código MD5 publicado na página.</p>
+      </div>
+      <div class="novidade">
+        <svg aria-hidden="true"><use href="#i-migrar"/></svg>
+        <h3>Migração em um clique</h3>
+        <p>Com a versão nova ainda vazia, a faixa <b>Levar os cálculos</b> abre a migração já preenchida. Não precisa mais abrir o PJe-Calc novo antes.</p>
+      </div>
+      <div class="novidade">
+        <svg aria-hidden="true"><use href="#i-disco"/></svg>
+        <h3>Espaço conferido antes</h3>
+        <p>Antes do backup, o programa confere se cabe no disco, no pendrive ou na pasta de rede, e avisa antes de começar.</p>
+      </div>
+      <div class="novidade">
+        <svg aria-hidden="true"><use href="#i-cofre"/></svg>
+        <h3>Logo novo</h3>
+        <p>O cofre: a maçaneta é o sinal de igual, de cálculo conferido. Aparece no programa, no ícone e neste site.</p>
+      </div>
+    </div>
+    <div class="relato">
+      <img src="tela-relato.png" alt="Tela Relatar um problema, com as informações técnicas sem dados das partes" width="1175" height="995" loading="lazy">
+      <div>
+        <h3>Relatar um problema, sem expor ninguém</h3>
+        <p>Pelo link no rodapé do programa: você conta o que aconteceu e ele junta as informações técnicas, trocando os <b>nomes das partes, os processos e os CPFs</b> por marcadores.</p>
+        <p>Depois é só escolher: e-mail para <b>pjecalcbkp@gmail.com</b>, uma <i>issue</i> no GitHub ou copiar o texto. Nada é enviado sem você conferir.</p>
+        <a class="mais" style="font-weight:600;font-size:15px;text-decoration:none" href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Histórico-de-versões">Tudo o que mudou em cada versão →</a>
+      </div>
+    </div>
+  </div>
+</section>
+
 <section class="faixa azul" id="como-usar">
   <div class="largura">
     <h2>Como usar</h2>
@@ -572,14 +642,15 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
         <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Nunca encerra o PJe-Calc à força</b><span>Se ele estiver aberto, é fechado como no "Sair" do ícone perto do relógio e reaberto no final.</span></div></li>
         <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Dá para desfazer</b><span>Antes de restaurar, migrar ou mudar a numeração, guarda uma cópia do banco.</span></div></li>
         <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Nada é apagado sem perguntar</b><span>A limpeza de backups antigos mostra a lista antes e manda para a Lixeira.</span></div></li>
-        <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Seus dados não saem do computador</b><span>A internet só é usada para ver se há versão nova, o que dá para desligar.</span></div></li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Confere o espaço antes</b><span>Se a pasta dos backups não tiver espaço, o programa avisa antes de começar.</span></div></li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg><div><b>Seus dados não saem do computador</b><span>A internet só é usada para ver se há versão nova do programa (no GitHub) e do PJe-Calc (no site do TRT8). As duas consultas podem ser desligadas.</span></div></li>
       </ul>
     </div>
     <div class="cmd" id="cmd">
       <h2>Também no CMD</h2>
       <p>O programa traz junto uma versão para o terminal, com as mesmas funções em menus simples e um modo automático para scripts.</p>
       <pre><code>PJeCalcBackup-Console.exe --backup --rapido</code></pre>
-      <img src="cmd-backup.png" alt="Backup rápido pela versão para o CMD" width="1059" height="690" loading="lazy">
+      <img src="cmd-backup.png" alt="Backup rápido pela versão para o CMD" width="1098" height="800" loading="lazy">
       <p style="font-size:15px;margin-top:12px"><a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/wiki/Versão-para-o-CMD">Ver os menus e todos os parâmetros →</a></p>
     </div>
   </div>
@@ -595,7 +666,11 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
     </details>
     <details>
       <summary>Em quais versões do PJe-Calc funciona?</summary>
-      <p>No PJe-Calc Cidadão para Windows. Foi testado nas versões 2.14.0 e 2.16.0, e encontra sozinho todas as versões instaladas no computador.</p>
+      <p>No PJe-Calc Cidadão para Windows. Foi testado nas versões 2.13.0, 2.14.0 e 2.16.0, e encontra sozinho todas as versões instaladas no computador.</p>
+    </details>
+    <details>
+      <summary>Instalei uma versão nova do PJe-Calc. Preciso abri-la antes de migrar?</summary>
+      <p>Não. Quando a versão nova ainda está do jeito que o instalador do TRT8 deixou, o programa faz sozinho o passo da primeira abertura, e a faixa "Levar os cálculos" já leva até a migração. Esse passo foi conferido no PJe-Calc 2.16.0; numa versão diferente, o programa não mexe e pede para abri-la uma vez pelo atalho oficial.</p>
     </details>
     <details>
       <summary>Preciso fechar o PJe-Calc antes do backup?</summary>
@@ -619,7 +694,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
     </details>
     <details>
       <summary>Encontrei um problema. Como relato?</summary>
-      <p>Abra uma <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/issues">issue no GitHub</a> com a versão do PJe-Calc, a do programa (aparece no rodapé) e a do Windows. Nunca envie arquivos com dados das partes.</p>
+      <p>Clique em <b>Relatar um problema</b>, no rodapé do programa. Ele monta as informações técnicas sem os nomes das partes, os processos e os CPFs, e abre o e-mail (pjecalcbkp@gmail.com) ou uma <a href="https://github.com/lfeliipeadv-stack/pjecalc-backup/issues">issue no GitHub</a> com a mensagem pronta. Nunca envie arquivos com dados das partes.</p>
     </details>
   </div>
 </section>
@@ -649,7 +724,7 @@ footer nav { display: flex; flex-wrap: wrap; gap: 16px; }
       <ul class="requisitos">
         <li><svg aria-hidden="true"><use href="#sim"/></svg>Windows 10 ou 11 (usa o .NET Framework 4.8, que já vem no Windows)</li>
         <li><svg aria-hidden="true"><use href="#sim"/></svg>Microsoft Edge ou Google Chrome, usados de forma invisível para exportar os cálculos</li>
-        <li><svg aria-hidden="true"><use href="#sim"/></svg>PJe-Calc Cidadão para Windows, aberto ao menos uma vez</li>
+        <li><svg aria-hidden="true"><use href="#sim"/></svg>PJe-Calc Cidadão para Windows (testado na 2.13.0, 2.14.0 e 2.16.0)</li>
         <li><svg aria-hidden="true"><use href="#sim"/></svg>Não pede senha de administrador</li>
       </ul>
     </div>
@@ -768,7 +843,7 @@ function fechar() {
   zoomImg.removeAttribute("src");
   if (antes) antes.focus();
 }
-document.querySelectorAll(".painel img, .cmd img").forEach(function (img) {
+document.querySelectorAll(".painel img, .cmd img, .relato img, .faixa-trt8").forEach(function (img) {
   img.addEventListener("click", function () { ampliar(img.src, img.alt); });
 });
 document.querySelectorAll("[data-demo]").forEach(function (b) {
